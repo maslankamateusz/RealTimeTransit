@@ -1,15 +1,11 @@
-import os
-from typing import Union
-
 from fastapi import FastAPI
-from services.gtfs_data_loader import load_gtfs_data
+from .api.routes import configure_routes
+from .services.gtfs_data_loader import load_gtfs_data
 
 app = FastAPI()
 
+configure_routes(app)
 
-@app.get("/")
-def main_page():
-    extracted_path = os.path.join(os.path.dirname(__file__), 'services', 'gtfs_data')
-    load_gtfs_data(extracted_path)
-    return {"Hello": "World"}
-
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
