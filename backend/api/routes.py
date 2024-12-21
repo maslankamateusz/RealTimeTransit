@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from fastapi.encoders import jsonable_encoder
 from ..services.gtfs_data_loader import load_gtfs_data
-from ..services.gtfs_processing import get_routes_list, get_stops_list, get_schedule_data
+from ..services.gtfs_processing import get_routes_list, get_stops_list, get_schedule_data, get_schedule_number_from_trip_id
 import pandas as pd
 
 router = APIRouter()
@@ -35,7 +35,7 @@ def convert_schedule_for_json(schedule_data):
 async def get_routes(gtfs: GTFSData = Depends(get_gtfs_data)):
     data = gtfs.get_data()
     routes = get_routes_list(data)
-    return jsonable_encoder(routes)
+    return jsonable_encoder(routes.to_dict(orient="records"))
 
 @router.get("/api/stops")
 async def get_stops(
@@ -57,6 +57,20 @@ async def get_schedule(
     schedule = get_schedule_data(data, route_id, vehicle_type)
     json_serializable_schedule = convert_schedule_for_json(schedule)
     return json_serializable_schedule
+
+@router.get("/api/routes/schedule/number")
+async def get_schedule_number(
+    gtfs: GTFSData = Depends(get_gtfs_data),
+    trip_id: str = Query(...),
+    vehicle_type: str = Query(None)
+):
+    data = gtfs.get_data()
+    if vehicle_type is None:
+        vehicle_type = "bus"  
+    schedule_number = get_schedule_number_from_trip_id(data, trip_id, vehicle_type)
+    json_serializable_schedule = convert_schedule_for_json(schedule_number)
+    return json_serializable_schedule
+
 
 def configure_routes(app):
     app.include_router(router)

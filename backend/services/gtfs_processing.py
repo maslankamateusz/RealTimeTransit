@@ -1,42 +1,37 @@
 import pandas as pd
+from collections import Counter
 
 def get_routes_list(gtfs_data):
     routes_a = gtfs_data['routes_a'][['route_id', 'route_short_name']]
     routes_t = gtfs_data['routes_t'][['route_id', 'route_short_name']]
     routes_list = pd.concat([routes_a, routes_t], ignore_index=True)
-    return routes_list.to_dict(orient="records")
+    return routes_list
 
 def get_stops_list(gtfs_data, route_number, direction):
     routes_list = get_routes_list(gtfs_data)
-    matching_routes = pd.DataFrame(routes_list)[pd.DataFrame(routes_list)['route_short_name'] == str(route_number)]
+    matching_routes = routes_list[routes_list['route_short_name'] == str(route_number)]
+    
     if matching_routes.empty:
         raise ValueError(f"No route found for route number {route_number}")
     if len(matching_routes) > 1:
         raise ValueError(f"Multiple routes found for route number {route_number}")
-    route_id = matching_routes['route_id'].values[0]
+    
+    route_id = matching_routes.iloc[0]['route_id']
+    trips_key = 'trips_a' if len(route_number) == 3 else 'trips_t'
+    stop_times_key = 'stop_times_a' if len(route_number) == 3 else 'stop_times_t'
+    stops_key = 'stops_a' if len(route_number) == 3 else 'stops_t'
 
-    if len(route_number) == 3:
-        trips = gtfs_data['trips_a']
-        stop_times = gtfs_data['stop_times_a']
-        stops = gtfs_data['stops_a']
-    else:
-        trips = gtfs_data['trips_t']
-        stop_times = gtfs_data['stop_times_t']
-        stops = gtfs_data['stops_t']
+    trips = gtfs_data[trips_key]
+    stop_times = gtfs_data[stop_times_key]
+    stops = gtfs_data[stops_key]
 
     trips_for_route = trips[trips['route_id'] == route_id]
-    if len(route_number) < 3:
-        trips_for_route = trips_for_route.groupby('block_id').apply(lambda x: x.iloc[1:-1] if len(x) >= 3 else x)
-    
     filtered_trips = trips_for_route[trips_for_route['direction_id'] == int(direction)]
-    if len(route_number) == 3:
-        trip_ids = filtered_trips.index.unique()
-    else:
-        trip_ids = filtered_trips.index.get_level_values(1).unique()
 
-    stops_for_all_trips = stop_times.loc[trip_ids].reset_index().merge(stops, on='stop_id')
-    stops = stops_for_all_trips[['stop_id', 'stop_name']].drop_duplicates().to_dict(orient='records')
-    return stops
+    trip_ids = filtered_trips.index.unique()
+    stops_for_all_trips = stop_times.loc[trip_ids].merge(stops, on='stop_id', how='inner')
+    return stops_for_all_trips[['stop_id', 'stop_name']].drop_duplicates().to_dict(orient='records')
+
 
 def get_schedule_data(gtfs_data, route_id, vehicle_type='bus'):
     days_of_week = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
@@ -90,3 +85,59 @@ def get_schedule_data(gtfs_data, route_id, vehicle_type='bus'):
         }
         route_schedule_list.append(schedule_dict)
     return route_schedule_list
+
+def get_trips_data_from_vehicle_type(gtfs_data, vehicle_type):
+    if vehicle_type == "bus":
+        trips_data = gtfs_data['trips_a']
+    elif vehicle_type == "tram":
+        trips_data = gtfs_data['trips_t']
+    else:
+        raise ValueError("Invalid vehicle type. Must be 'bus' or 'tram'.")
+
+    if 'trip_id' in trips_data.index.names:
+        trips_data.reset_index(inplace=True)
+
+    return trips_data
+
+def get_route_short_name_from_route_id(gtfs_data, route_id):
+    routes_list = get_routes_list(gtfs_data)
+    route_short_name = routes_list[routes_list["route_id"] == route_id]["route_short_name"].values[0]
+
+    return route_short_name
+
+def get_schedule_route_short_name(gtfs_data, trip_id, vehicle_type):
+    block_id = "_".join(trip_id.split("_")[:2])
+    trips_data = get_trips_data_from_vehicle_type(gtfs_data, vehicle_type)
+
+    filtered_data = trips_data[trips_data['block_id'] == block_id]
+    route_ids = filtered_data['route_id'].values
+
+    counter = Counter(route_ids)
+    schedule_route_id = counter.most_common(1)[0][0]
+
+    route_short_name = get_route_short_name_from_route_id(gtfs_data, schedule_route_id)
+    return route_short_name
+
+def get_schedule_number_from_trip_id(gtfs_data, trip_id, vehicle_type):
+    trips_data = get_trips_data_from_vehicle_type(gtfs_data, vehicle_type)
+    filtered_data = trips_data[trips_data['trip_id'] == trip_id]
+
+    route_id = filtered_data['route_id'].values[0]
+    service_id = filtered_data['service_id'].values[0]
+    block_id = filtered_data['block_id'].values[0]
+
+    if pd.isna(filtered_data['route_id'].values[0]) or pd.isna(filtered_data['service_id'].values[0]) or pd.isna(filtered_data['block_id'].values[0]):
+        raise ValueError(f"Missing data for trip_id {trip_id}")
+    
+    filtred_data = trips_data[(trips_data['route_id'] == route_id) & (trips_data['service_id'] == service_id)]
+
+    if filtered_data.empty:
+        raise ValueError(f"No data found for trip_id {trip_id}")
+
+    block_ids = sorted(set(filtred_data['block_id'].values))
+    schedule_number = block_ids.index(block_id) + 1
+    formatted_schedule_number = str(schedule_number).zfill(2)
+
+    route_short_name = get_schedule_route_short_name(gtfs_data, trip_id, vehicle_type)
+    result = f"{route_short_name}/{formatted_schedule_number}"
+    return result
