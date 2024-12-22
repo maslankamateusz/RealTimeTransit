@@ -74,13 +74,12 @@ def get_schedule_data(gtfs_data, route_id, vehicle_type='bus'):
 
         service_day = calendar_data[calendar_data['service_id'] == service_id].copy()
         days_with_service = service_day[days_of_week].loc[:, service_day[days_of_week].iloc[0] == 1].columns.tolist()
-        block_filtered_trips_with_index = block_filtered_trips.reset_index()
 
         schedule_dict = {
             'block_prefix': block_prefix,
+            'service_id': service_id,
             'start_time': start_time,
             'end_time': end_time,
-            'route_schedule': block_filtered_trips_with_index,
             'service_days': days_with_service
         }
         route_schedule_list.append(schedule_dict)
@@ -141,3 +140,12 @@ def get_schedule_number_from_trip_id(gtfs_data, trip_id, vehicle_type):
     route_short_name = get_schedule_route_short_name(gtfs_data, trip_id, vehicle_type)
     result = f"{route_short_name}/{formatted_schedule_number}"
     return result
+
+def get_schedule_from_block_id(gtfs_data, block_id, vehicle_type):
+    trips_data = get_trips_data_from_vehicle_type(gtfs_data, vehicle_type)
+    filtered_data = trips_data[trips_data['block_id'] == block_id]
+
+    if filtered_data.empty:
+        raise ValueError(f"No data found for block_id {block_id}")
+
+    return filtered_data
