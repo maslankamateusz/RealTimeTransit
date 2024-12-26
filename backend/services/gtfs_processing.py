@@ -149,3 +149,43 @@ def get_schedule_from_block_id(gtfs_data, block_id, vehicle_type):
         raise ValueError(f"No data found for block_id {block_id}")
 
     return filtered_data
+
+def get_block_ids_from_route_id(gtfs_data, route_id, vehicle_type):
+    trips_data = get_trips_data_from_vehicle_type(gtfs_data, vehicle_type)
+    filtered_data = trips_data[trips_data['route_id'] == route_id]
+
+    if filtered_data.empty:
+        raise ValueError(f"No data found for route_id {route_id}")
+
+    block_ids = sorted(set(filtered_data['block_id'].values))
+    return block_ids
+
+def get_route_id_from_route_number(gtfs_data, route_number):
+    routes_list = get_routes_list(gtfs_data)
+    route_id = routes_list[routes_list["route_short_name"] == route_number]["route_id"].values[0]
+
+    return route_id
+
+def get_timetable_data(gtfs_data, route_number, direction, stop_id):
+    if(len(route_number) >= 3):
+        stop_times_data = gtfs_data['stop_times_a']
+        block_ids = get_block_ids_from_route_id(gtfs_data, get_route_id_from_route_number(gtfs_data, route_number), "bus")
+    else:
+        stop_times_data = gtfs_data['stop_times_t']
+        block_ids = get_block_ids_from_route_id(gtfs_data, get_route_id_from_route_number(gtfs_data, route_number), "tram")
+
+
+    filtred_stop_times_data = stop_times_data[stop_times_data['stop_id'] == stop_id]
+    filtred_df = filtred_stop_times_data[['departure_time', 'stop_id']].copy()
+    filtred_df['block_id'] = filtred_df.index.str.split('_').str[:2].str.join('_')
+    filtred_df['trip_id'] = filtred_df.index.str.split('_').str[3:4].str.join('_')
+    filtred_df['service_id'] = filtred_df.index.str.split('_').str[5:].str.join('_')
+
+    filtred_df = filtred_df[filtred_df['block_id'].isin(block_ids)]
+
+    if direction == 0:
+        filtred_df = filtred_df[filtred_df['trip_id'].astype(int) % 2 == 0]
+    elif direction == 1:
+        filtred_df = filtred_df[filtred_df['trip_id'].astype(int) % 2 != 0]
+
+    return filtred_df.to_dict(orient='records')
