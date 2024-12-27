@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
-from ..services.gtfs_data_loader import load_gtfs_data
-from ..services.gtfs_processing import get_routes_list, get_stops_list, get_schedule_data, get_schedule_number_from_trip_id, get_schedule_from_block_id, get_timetable_data
+from ..services.static.gtfs_data_loader import load_gtfs_data
+from ..services.static.gtfs_processing import get_routes_list, get_stops_list, get_schedule_data, get_schedule_number_from_trip_id, get_schedule_from_block_id, get_timetable_data
 import pandas as pd
+from typing import List, Dict
+from ..services.realtime.realtime_service import get_vehicle_with_route_name
 
 router = APIRouter()
 
@@ -41,7 +43,7 @@ async def get_routes(gtfs: GTFSData = Depends(get_gtfs_data)):
 async def get_stops(
     gtfs: GTFSData = Depends(get_gtfs_data),
     route_number: str = Query(...),
-    direction: int = Query(...)
+    direction: int = Query(...),
 ):
     data = gtfs.get_data()
     stops = get_stops_list(data, route_number, direction)
@@ -51,7 +53,7 @@ async def get_stops(
 async def get_schedule_plan(
     gtfs: GTFSData = Depends(get_gtfs_data),
     route_id: str = Query(...),
-    vehicle_type: str = Query(...)
+    vehicle_type: str = Query(...),
 ):
     data = gtfs.get_data()
     schedule = get_schedule_data(data, route_id, vehicle_type)
@@ -62,7 +64,7 @@ async def get_schedule_plan(
 async def get_schedule(
     gtfs: GTFSData = Depends(get_gtfs_data),
     block_id: str = Query(...),
-    vehicle_type: str = Query(...)
+    vehicle_type: str = Query(...),
 ):
     data = gtfs.get_data()
     schedule = get_schedule_from_block_id(data, block_id, vehicle_type)
@@ -73,7 +75,7 @@ async def get_schedule(
 async def get_schedule_number(
     gtfs: GTFSData = Depends(get_gtfs_data),
     trip_id: str = Query(...),
-    vehicle_type: str = Query(None)
+    vehicle_type: str = Query(None),
 ):
     data = gtfs.get_data()
     if vehicle_type is None:
@@ -87,13 +89,25 @@ async def get_timetable(
     gtfs: GTFSData = Depends(get_gtfs_data),
     route_number: str = Query(...),
     direction: int = Query(...),
-    stop_id: str = Query(...)
+    stop_id: str = Query(...),
 ):
     data = gtfs.get_data()
     
     schedule = get_timetable_data(data, route_number, direction, stop_id)
     json_serializable_schedule = convert_schedule_for_json(schedule)
     return json_serializable_schedule 
+
+@router.get("/api/vehicle_positions")
+async def vehicle_positions():
+    try:
+        vehicle_list = get_vehicle_with_route_name()
+        if vehicle_list:
+            return jsonable_encoder(vehicle_list)
+        else:
+            raise HTTPException(status_code=500, detail="Could not fetch or parse real-time data")
+    except Exception as e:
+        print(f"Error fetching vehicle positions: {e}")
+        raise HTTPException(status_code=500, detail="Could not fetch or parse real-time data")
 
 def configure_routes(app):
     app.include_router(router)

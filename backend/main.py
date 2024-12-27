@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from .api.routes import configure_routes
-from .services.gtfs_data_loader import load_gtfs_data
+from .services.static.gtfs_data_loader import load_gtfs_data
 
 app = FastAPI()
 
