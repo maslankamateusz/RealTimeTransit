@@ -3,8 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from ..services.static.gtfs_data_loader import load_gtfs_data
 from ..services.static.gtfs_processing import get_routes_list, get_stops_list, get_schedule_data, get_schedule_number_from_trip_id, get_schedule_from_block_id, get_timetable_data
 import pandas as pd
-from typing import List, Dict
-from ..services.realtime.realtime_service import get_vehicle_with_route_name
+from ..services.realtime.realtime_service import get_vehicle_realtime_raw_data, get_vehicle_with_route_name
 
 router = APIRouter()
 
@@ -97,10 +96,11 @@ async def get_timetable(
     json_serializable_schedule = convert_schedule_for_json(schedule)
     return json_serializable_schedule 
 
-@router.get("/api/vehicle_positions")
-async def vehicle_positions():
+@router.get("/api/realtime/")
+async def realtime_data():
     try:
-        vehicle_list = get_vehicle_with_route_name()
+        vehicle_list_a, vehicle_list_t = get_vehicle_realtime_raw_data()
+        vehicle_list = vehicle_list_a + vehicle_list_t
         if vehicle_list:
             return jsonable_encoder(vehicle_list)
         else:
@@ -108,6 +108,22 @@ async def vehicle_positions():
     except Exception as e:
         print(f"Error fetching vehicle positions: {e}")
         raise HTTPException(status_code=500, detail="Could not fetch or parse real-time data")
+
+@router.get("/api/realtime/vehicles/")
+async def get_vehicle_with_route(
+        gtfs: GTFSData = Depends(get_gtfs_data)
+    ):
+    try:
+        data = gtfs.get_data()
+        vehicle_list = get_vehicle_with_route_name(data)
+        if vehicle_list:
+            return jsonable_encoder(vehicle_list)
+        else:
+            raise HTTPException(status_code=500, detail="Could not fetch or parse real-time data")
+    except Exception as e:
+        print(f"Error fetching vehicle positions: {e}")
+        raise HTTPException(status_code=500, detail="Could not fetch or parse real-time data")
+
 
 def configure_routes(app):
     app.include_router(router)

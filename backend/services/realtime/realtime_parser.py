@@ -54,7 +54,6 @@ def parse_vehicle_positions(file_path):
                 }
                 vehicles.append(vehicle_info)
 
-        print(f"Parsed {len(vehicles)} vehicles from {file_path}.")
     except Exception as e:
         print(f"Failed to parse {file_path}: {e}")
         raise

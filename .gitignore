@@ -4,6 +4,9 @@ backend/api/__pycache__/__init__.cpython-313.pyc
 backend/services/__pycache__
 backend/services/static/__pycache__
 backend/services/static/gtfs_data
+backend/services/gtfs_realtime_pb2.py
+backend/services/vehicle_positions_t.pb
+backend/services/vehicle_positions_a.pb
 **/__pycache__/
 **/*.pyc
 .venv/
@@ -35,3 +38,5 @@ htmlcov/
 .coverage.*
 .ipynb_checkpoints/
 .env
+backend/api/__pycache__/routes.cpython-313.pyc
+
