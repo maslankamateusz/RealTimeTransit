@@ -1,7 +1,9 @@
 import json
 import os
 from sqlalchemy.orm import Session
-from .models import Vehicle
+from sqlalchemy.dialects.postgresql import insert
+from datetime import datetime, timezone
+from .models import Vehicle, DailyLog, VehiclesStatus
 
 def import_vehicles_from_json(db: Session, json_filename: str, batch_size: int = 100) -> int:
     json_path = os.path.join(os.path.dirname(__file__), 'data', json_filename)
@@ -37,3 +39,31 @@ def import_vehicles_from_json(db: Session, json_filename: str, batch_size: int =
         print(f"Błąd podczas importu: {e}")
         raise
 
+def delete_old_vehicle_statuses(session):
+    today = datetime.now(timezone.utc).date()
+    session.query(VehiclesStatus).filter(VehiclesStatus.last_updated < today).delete()
+    session.commit()
+
+def update_vehicles_status(session, vehicles_data):
+    delete_old_vehicle_statuses(session) 
+
+    for vehicle in vehicles_data:
+        vehicle_status = session.query(VehiclesStatus).filter_by(vehicle_id=vehicle["vehicle_id"]).first()
+        current_time = datetime.now(timezone.utc)
+
+        if vehicle_status:
+            vehicle_status.schedule_number = vehicle["schedule_number"]
+            vehicle_status.latitude = vehicle["latitude"]
+            vehicle_status.longitude = vehicle["longitude"]
+            vehicle_status.last_updated = current_time
+        else:
+            new_status = VehiclesStatus(
+                vehicle_id=vehicle["vehicle_id"],
+                schedule_number=vehicle["schedule_number"],
+                latitude=vehicle["latitude"],
+                longitude=vehicle["longitude"],
+                last_updated=current_time,
+            )
+            session.add(new_status)
+
+    session.commit()
