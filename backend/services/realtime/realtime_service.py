@@ -1,6 +1,10 @@
 from .realtime_fetcher import download_gtfs_realtime_file
 from .realtime_parser import parse_vehicle_positions
 from typing import List, Dict
+from ..static.gtfs_data_loader import load_gtfs_data
+from ...database.crud import update_vehicles_status
+from ...database.session import SessionLocal
+from ..static.gtfs_processing import get_schedule_number_from_trip_id
 
 def get_vehicle_realtime_raw_data() -> List[Dict]:
     try:
@@ -80,3 +84,23 @@ def get_vehicle_with_route_name(gtfs_data):
             vehicle_list.append(vehicle_t)
     return vehicle_list
  
+
+
+def prepare_realtime_data_for_database():
+    print("New realtime data processing started.")
+    gtfs_data = load_gtfs_data()
+    vehicles_list = get_vehicle_with_route_name(gtfs_data)
+
+    formated_vehicles_list = []
+    for vehicle in vehicles_list:
+        if vehicle['vehicle_id'][0] in ('D', 'P', 'B', 'K'):
+            formated_vehicle = {
+                'vehicle_id': vehicle['vehicle_id'],
+                'schedule_number': get_schedule_number_from_trip_id(gtfs_data, vehicle['trip_id'], vehicle['type']),
+                'latitude': vehicle['latitude'],
+                'longitude': vehicle['longitude'], 
+                'timestamp': vehicle['timestamp']
+            }
+            formated_vehicles_list.append(formated_vehicle)
+    with SessionLocal() as session:
+        update_vehicles_status(session, formated_vehicles_list)

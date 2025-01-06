@@ -2,9 +2,15 @@ import pandas as pd
 from collections import Counter
 
 def get_routes_list(gtfs_data):
+    if 'route_id' in gtfs_data['routes_a'].index.names:
+        gtfs_data['routes_a'].reset_index(inplace=True)
+    if 'route_id' in gtfs_data['routes_t'].index.names:
+        gtfs_data['routes_t'].reset_index(inplace=True)
+
     routes_a = gtfs_data['routes_a'][['route_id', 'route_short_name']]
-    routes_t = gtfs_data['routes_t'][['route_id', 'route_short_name']]
+    routes_t = gtfs_data['routes_t'][['route_id', 'route_short_name']] 
     routes_list = pd.concat([routes_a, routes_t], ignore_index=True)
+
     return routes_list
 
 def get_stops_list(gtfs_data, route_number, direction):
@@ -98,23 +104,24 @@ def get_trips_data_from_vehicle_type(gtfs_data, vehicle_type):
 
     return trips_data
 
-def get_route_short_name_from_route_id(gtfs_data, route_id):
+def get_route_short_name_from_route_id(gtfs_data, route_id, vehicle_type):
     routes_list = get_routes_list(gtfs_data)
-    route_short_name = routes_list[routes_list["route_id"] == route_id]["route_short_name"].values[0]
+    if len(routes_list[routes_list["route_id"] == route_id]["route_short_name"].values) > 1:
+        route_short_name = routes_list[routes_list["route_id"] == route_id]["route_short_name"].values[1]
+    else:
+        route_short_name = routes_list[routes_list["route_id"] == route_id]["route_short_name"].values[0]
 
     return route_short_name
 
 def get_schedule_route_short_name(gtfs_data, trip_id, vehicle_type):
     block_id = "_".join(trip_id.split("_")[:2])
     trips_data = get_trips_data_from_vehicle_type(gtfs_data, vehicle_type)
-
     filtered_data = trips_data[trips_data['block_id'] == block_id]
     route_ids = filtered_data['route_id'].values
-
     counter = Counter(route_ids)
     schedule_route_id = counter.most_common(1)[0][0]
 
-    route_short_name = get_route_short_name_from_route_id(gtfs_data, schedule_route_id)
+    route_short_name = get_route_short_name_from_route_id(gtfs_data, schedule_route_id, vehicle_type)
     return route_short_name
 
 def get_schedule_number_from_trip_id(gtfs_data, trip_id, vehicle_type):
@@ -124,12 +131,11 @@ def get_schedule_number_from_trip_id(gtfs_data, trip_id, vehicle_type):
     route_id = filtered_data['route_id'].values[0]
     service_id = filtered_data['service_id'].values[0]
     block_id = filtered_data['block_id'].values[0]
-
     if pd.isna(filtered_data['route_id'].values[0]) or pd.isna(filtered_data['service_id'].values[0]) or pd.isna(filtered_data['block_id'].values[0]):
         raise ValueError(f"Missing data for trip_id {trip_id}")
     
     filtred_data = trips_data[(trips_data['route_id'] == route_id) & (trips_data['service_id'] == service_id)]
-
+ 
     if filtered_data.empty:
         raise ValueError(f"No data found for trip_id {trip_id}")
 
