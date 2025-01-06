@@ -4,6 +4,10 @@ from ..services.static.gtfs_data_loader import load_gtfs_data
 from ..services.static.gtfs_processing import get_routes_list, get_stops_list, get_schedule_data, get_schedule_number_from_trip_id, get_schedule_from_block_id, get_timetable_data
 import pandas as pd
 from ..services.realtime.realtime_service import get_vehicle_realtime_raw_data, get_vehicle_with_route_name
+from sqlalchemy.orm import Session
+from ..database.crud import import_vehicles_from_json  
+from ..database.session import SessionLocal  
+import os
 
 router = APIRouter()
 
@@ -124,6 +128,21 @@ async def get_vehicle_with_route(
         print(f"Error fetching vehicle positions: {e}")
         raise HTTPException(status_code=500, detail="Could not fetch or parse real-time data")
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@router.get("/api/import-vehicles/")
+async def import_vehicles(db: Session = Depends(get_db)):
+    try:
+        imported_count = import_vehicles_from_json(db, 'vehicles.json')
+        return {"message": f"Pojazdy zostały zaimportowane! Zaimportowano {imported_count} pojazdów."}
+    except Exception as e:
+        print(f"Error importing vehicles: {e}")
+        raise HTTPException(status_code=500, detail="Błąd podczas importu pojazdów.")
 
 def configure_routes(app):
     app.include_router(router)

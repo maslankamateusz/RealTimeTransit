@@ -39,4 +39,4 @@ htmlcov/
 .ipynb_checkpoints/
 .env
 backend/api/__pycache__/routes.cpython-313.pyc
-
+backend/database/data/vehicles.json
