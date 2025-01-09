@@ -90,7 +90,7 @@ def prepare_realtime_data_for_database():
     print("New realtime data processing started.")
     gtfs_data = load_gtfs_data()
     vehicles_list = get_vehicle_with_route_name(gtfs_data)
-
+    
     formated_vehicles_list = []
     for vehicle in vehicles_list:
         if vehicle['vehicle_id'][0] in ('D', 'P', 'B', 'K'):

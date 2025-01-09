@@ -1,14 +1,23 @@
 import pandas as pd
 from collections import Counter
 
-def get_routes_list(gtfs_data):
+def get_bus_routes_list(gtfs_data):
     if 'route_id' in gtfs_data['routes_a'].index.names:
         gtfs_data['routes_a'].reset_index(inplace=True)
+
+    routes_a = gtfs_data['routes_a'][['route_id', 'route_short_name']]
+    return routes_a
+
+def get_tram_routes_list(gtfs_data):
     if 'route_id' in gtfs_data['routes_t'].index.names:
         gtfs_data['routes_t'].reset_index(inplace=True)
 
-    routes_a = gtfs_data['routes_a'][['route_id', 'route_short_name']]
-    routes_t = gtfs_data['routes_t'][['route_id', 'route_short_name']] 
+    routes_t = gtfs_data['routes_t'][['route_id', 'route_short_name']]
+    return routes_t
+
+def get_routes_list(gtfs_data):
+    routes_a = get_bus_routes_list(gtfs_data)
+    routes_t = get_tram_routes_list(gtfs_data)
     routes_list = pd.concat([routes_a, routes_t], ignore_index=True)
 
     return routes_list
@@ -105,12 +114,13 @@ def get_trips_data_from_vehicle_type(gtfs_data, vehicle_type):
     return trips_data
 
 def get_route_short_name_from_route_id(gtfs_data, route_id, vehicle_type):
-    routes_list = get_routes_list(gtfs_data)
-    if len(routes_list[routes_list["route_id"] == route_id]["route_short_name"].values) > 1:
-        route_short_name = routes_list[routes_list["route_id"] == route_id]["route_short_name"].values[1]
-    else:
-        route_short_name = routes_list[routes_list["route_id"] == route_id]["route_short_name"].values[0]
 
+    if vehicle_type == "bus":
+        routes_list = get_bus_routes_list(gtfs_data)
+    else:
+        routes_list = get_tram_routes_list(gtfs_data)
+
+    route_short_name = routes_list[routes_list["route_id"] == route_id]["route_short_name"].values[0]
     return route_short_name
 
 def get_schedule_route_short_name(gtfs_data, trip_id, vehicle_type):
