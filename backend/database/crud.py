@@ -50,7 +50,7 @@ def update_vehicles_status(session, vehicles_data):
     for vehicle in vehicles_data:
         vehicle_status = session.query(VehiclesStatus).filter_by(vehicle_id=vehicle["vehicle_id"]).first()
         current_time = datetime.fromtimestamp(vehicle['timestamp'])
-        print(current_time)
+        # print(current_time)
         if vehicle_status:
             vehicle_status.schedule_number = vehicle["schedule_number"]
             vehicle_status.latitude = vehicle["latitude"]

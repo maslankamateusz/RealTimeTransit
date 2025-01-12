@@ -3,23 +3,24 @@ from fastapi import FastAPI
 from .api.routes import configure_routes
 from datetime import datetime
 from .services.realtime.realtime_service import prepare_realtime_data_for_database
+from .services.static.gtfs_data_loader import load_gtfs_data  
 
 app = FastAPI()
 
-configure_routes(app)
+@app.on_event("startup")
+async def startup_event():
+    load_gtfs_data()  
+    await start_realtime_check()
 
 async def check_for_new_realtime_data():
     while True:
-        prepare_realtime_data_for_database()
-        
+        prepare_realtime_data_for_database()  
         await asyncio.sleep(30)  
 
 async def start_realtime_check():
     asyncio.create_task(check_for_new_realtime_data())
 
-@app.on_event("startup")
-async def startup_event():
-    await start_realtime_check()
+configure_routes(app)
 
 if __name__ == "__main__":
     import uvicorn
