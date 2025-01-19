@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
 from ..services.static.gtfs_data_loader import load_gtfs_data
-from ..services.static.gtfs_processing import get_routes_list, get_stops_list, get_schedule_data, get_schedule_from_block_id, get_timetable_data, create_csv_with_schedule_numbers
+from ..services.static.gtfs_processing import get_routes_list, get_stops_list, get_schedule_data, get_schedule_from_block_id, get_timetable_data, create_csv_with_schedule_numbers, get_schedule_number_from_block_id
 import pandas as pd
 from ..services.realtime.realtime_service import get_vehicle_realtime_raw_data, get_vehicle_with_route_name
 from sqlalchemy.orm import Session
@@ -27,21 +27,6 @@ def get_gtfs_data(request: Request = None):
     gtfs_data = gtfs_data_instance.get_data()
     return gtfs_data
 
-# def convert_schedule_for_json(schedule_data):
-#     if isinstance(schedule_data, pd.DataFrame):
-#         return schedule_data.astype(object).where(pd.notnull(schedule_data), None).to_dict(orient='records')
-#     elif isinstance(schedule_data, list):
-#         return [convert_schedule_for_json(data) for data in schedule_data]
-#     elif isinstance(schedule_data, dict):
-#         return {key: convert_schedule_for_json(value) for key, value in schedule_data.items()}
-#     elif isinstance(schedule_data, (int, float, str, bool)) or schedule_data is None:
-#         return schedule_data
-#     else:
-#         try:
-#             return jsonable_encoder(schedule_data)
-#         except Exception:
-#             return str(schedule_data) 
-
 def convert_schedule_for_json(schedule_data):
     if isinstance(schedule_data, pd.DataFrame):
         return schedule_data.astype(object).where(pd.notnull(schedule_data), None).to_dict(orient='records')
@@ -62,7 +47,6 @@ def convert_schedule_for_json(schedule_data):
 @router.get("/api/routes")
 async def get_routes():
     data = get_gtfs_data()
-
     routes = get_routes_list(data)
     return jsonable_encoder(routes.to_dict(orient="records"))
 
@@ -97,16 +81,15 @@ async def get_schedule(
 
 @router.get("/api/routes/schedule/number")
 async def get_schedule_number(
-    trip_id: str = Query(...),
+    block_id: str = Query(...),
+    service_id: str = Query(...),
     vehicle_type: str = Query(None),
 ):
     data = get_gtfs_data()
     if vehicle_type is None:
         vehicle_type = "bus"  
-    # schedule_number = get_schedule_number_from_trip_id(data, trip_id, vehicle_type)
-    # json_serializable_schedule = convert_schedule_for_json(schedule_number)
-    # return json_serializable_schedule
-    return "to do"
+    schedule_number = get_schedule_number_from_block_id(data, block_id, service_id, vehicle_type)    
+    return schedule_number
 
 @router.get("/api/routes/timetable")
 async def get_timetable(
