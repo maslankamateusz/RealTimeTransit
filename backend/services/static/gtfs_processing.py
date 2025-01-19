@@ -81,24 +81,43 @@ def create_csv_with_schedule_numbers(gtfs_data):
         print(f"An error occurred: {e}")
 
 
+
 def create_df_with_schedule_numbers(routes_data, trips_data, calendar_df):
-    routes_ids = routes_data['route_id'].drop_duplicates().values.tolist()
     route_short_names = routes_data['route_short_name'].drop_duplicates().values.tolist()
     service_ids = calendar_df['service_id'].tolist()
 
-    schedule_number_list = []
+    shedule_list = []
     for service_id in service_ids:
         filtered_trips_data = trips_data[trips_data['service_id'] == service_id]
-        for index, route_id in enumerate(routes_ids):
+        block_ids = filtered_trips_data['block_id'].drop_duplicates().values
+        
+        sorted_route_short_names = sorted(route_short_names, key=int)
+        routes_list = []
+        for route_short_name in sorted_route_short_names:
+            route_id = routes_data[routes_data["route_short_name"] == route_short_name]["route_id"].values[0]  
             block_ids = filtered_trips_data[filtered_trips_data['route_id'] == route_id]['block_id'].drop_duplicates().values.tolist()
-            for index2, block_id in enumerate(block_ids):
-                block_filtered_data = trips_data[trips_data['block_id'] == block_id]
-                frequent_route_id = block_filtered_data['route_id'].value_counts().idxmax()
-                if frequent_route_id == route_id:
-                    key = f"{route_short_names[index]}/{str(index2+1).zfill(2)}"
-                    schedule_number_list.append({'block_id' : block_id, 'schedule_number' : key, 'service_id' : service_id})
+            block_numbers = [block.split('_')[1] for block in block_ids]
+            block_numbers.sort(key=int)
 
-    schedule_number_df = pd.DataFrame(schedule_number_list)
+            routes_list.append({route_short_name: block_numbers})
+
+        first_key = next(iter(routes_list[0]))
+        first_block_id = int(routes_list[0][first_key][0])
+
+        last_bloc = first_block_id - 1
+
+        for route_block in routes_list:
+            for route, blocks in route_block.items():
+                if blocks:
+                    schedule_num = 1
+                    for block in blocks:
+                        if int(block) == last_bloc + 1:
+                            last_bloc = int(block)
+                            shedule_list.append({"block_id" : f"block_{block}", "schedule_number": f"{route}/{str(schedule_num).zfill(2)}", "service_id" : service_id})
+                            schedule_num += 1
+                            continue
+        
+    schedule_number_df = pd.DataFrame(shedule_list)
     return schedule_number_df
     
 
@@ -129,7 +148,6 @@ def get_schedule_data(gtfs_data, route_id, vehicle_type='bus'):
             schedule_number_list.append(block_id)
             
     # to do block_prefix
-
     filtered_data['block_prefix'] = filtered_data['trip_id'].str.split('_').str[:2].str.join('_')
     unique_blocks = filtered_data[['block_prefix']].drop_duplicates().reset_index(drop=True)
         

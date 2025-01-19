@@ -94,20 +94,25 @@ def get_vehicle_with_route_name(gtfs_data):
 def get_schedule_number_from_trip_id(gtfs_data, trip_id, vehicle_type):
     parts = trip_id.split("_")
     block_id = f"block_{parts[1]}".strip()
-    service_id = f"service_{parts[3]}".strip()
-    schedule_numbers = gtfs_data['schedule_num_a']
-    schedule_number = schedule_numbers[(schedule_numbers['block_id'] == block_id)]['schedule_number'].values[0]
+    service_id = f"service_{parts[5]}".strip()
+    if vehicle_type == "bus":
+        schedule_numbers = gtfs_data['schedule_num_a']
+    else:
+        schedule_numbers = gtfs_data['schedule_num_t']
+    schedule_number = schedule_numbers[
+        (schedule_numbers['block_id'] == block_id) &
+        (schedule_numbers['service_id'] == service_id)
+    ]['schedule_number'].values[0]
     return schedule_number
 
 def prepare_realtime_data_for_database(gtfs_data: dict = Depends(get_gtfs_data)):
     
     print("New realtime data processing started.")
     gtfs_data = get_gtfs_data()
-
     vehicles_list = get_vehicle_with_route_name(gtfs_data)
     formated_vehicles_list = []
     for vehicle in vehicles_list:
-        if vehicle['vehicle_id'][0] in ('D', 'P', 'B', 'K'):
+        if vehicle['vehicle_id'][0]:
             schedule_number = get_schedule_number_from_trip_id(gtfs_data, vehicle['trip_id'], vehicle['type'])
             formated_vehicle = {
                 'vehicle_id': vehicle['vehicle_id'],
