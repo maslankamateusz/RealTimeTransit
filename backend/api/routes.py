@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
 from ..services.static.gtfs_data_loader import load_gtfs_data
-from ..services.static.gtfs_processing import get_routes_list, get_stops_list, get_schedule_data, get_schedule_from_block_id, get_timetable_data, create_csv_with_schedule_numbers, get_schedule_number_from_block_id
+from ..services.static.gtfs_processing import get_routes_list, get_stops_list, get_schedule_data, get_schedule_from_block_id, get_timetable_data, create_csv_with_schedule_numbers, get_schedule_number_from_block_id, get_routes_list_from_block_id
 import pandas as pd
 from ..services.realtime.realtime_service import get_vehicle_realtime_raw_data, get_vehicle_with_route_name
 from sqlalchemy.orm import Session
@@ -150,6 +150,18 @@ async def get_vehicle_with_route():
     data = get_gtfs_data()
     response = create_csv_with_schedule_numbers(data)
     return response
+
+@router.get("/api/schedule/routes")
+async def get_routes_list(
+    block_id: str = Query(...),
+    vehicle_type: str = Query(None),
+):
+    data = get_gtfs_data()
+    if vehicle_type is None:
+        vehicle_type = "bus" 
+    
+    routes_list = get_routes_list_from_block_id(data, vehicle_type, block_id, )
+    return routes_list
 
 def configure_routes(app):
     app.include_router(router)

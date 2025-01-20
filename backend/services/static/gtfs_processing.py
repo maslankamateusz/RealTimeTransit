@@ -260,3 +260,17 @@ def get_schedule_number_from_block_id(gtfs_data, block_id, service_id, vehicle_t
 
     schedule_number = schedule_data[(schedule_data['block_id'] == block_id) & (schedule_data['service_id'] == service_id)]['schedule_number'].values[0]
     return schedule_number
+
+def get_routes_list_from_block_id(gtfs_data, vehicle_type, block_id):
+    if vehicle_type == "bus":
+        trips_data = gtfs_data['trips_a']
+    else:
+        trips_data = gtfs_data['trips_t']
+
+    routes_list = trips_data[trips_data['block_id'] == block_id]['route_id'].unique()
+    route_short_names_list = []
+    for route_id in routes_list:
+        route_short_name = get_route_short_name_from_route_id(gtfs_data, route_id, vehicle_type)
+        route_short_names_list.append(route_short_name)
+
+    return route_short_names_list
