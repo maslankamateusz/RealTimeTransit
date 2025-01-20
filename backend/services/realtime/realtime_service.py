@@ -6,6 +6,7 @@ from ...database.crud import update_vehicles_status
 from fastapi import Depends
 from fastapi import Request
 from ..static.gtfs_data_loader import gtfs_data_instance
+from ..static.gtfs_processing import get_routes_list_from_block_id
 
 def get_gtfs_data(request: Request = None):
     gtfs_data = gtfs_data_instance.get_data()
@@ -105,23 +106,33 @@ def get_schedule_number_from_trip_id(gtfs_data, trip_id, vehicle_type):
     ]['schedule_number'].values[0]
     return schedule_number
 
+def get_routes_list(gtfs_data, trip_id, vehicle_type):
+    parts = trip_id.split("_")
+    block_id = f"block_{parts[1]}".strip()
+    routes_list = get_routes_list_from_block_id(gtfs_data, vehicle_type, block_id)
+    return routes_list
+
 def prepare_realtime_data_for_database(gtfs_data: dict = Depends(get_gtfs_data)):
     
     print("New realtime data processing started.")
     gtfs_data = get_gtfs_data()
     vehicles_list = get_vehicle_with_route_name(gtfs_data)
     formated_vehicles_list = []
+    
     for vehicle in vehicles_list:
         if vehicle['vehicle_id'][0]:
+            rotues_list = get_routes_list(gtfs_data, vehicle['trip_id'], vehicle['type'])
             schedule_number = get_schedule_number_from_trip_id(gtfs_data, vehicle['trip_id'], vehicle['type'])
-            formated_vehicle = {
-                'vehicle_id': vehicle['vehicle_id'],
-                'schedule_number': schedule_number,
-                'latitude': vehicle['latitude'],
-                'longitude': vehicle['longitude'], 
-                'timestamp': vehicle['timestamp']
-            }
-            formated_vehicles_list.append(formated_vehicle)
+            if schedule_number:
+                formated_vehicle = {
+                    'vehicle_id': vehicle['vehicle_id'],
+                    'schedule_number': schedule_number,
+                    'latitude': vehicle['latitude'],
+                    'longitude': vehicle['longitude'], 
+                    'timestamp': vehicle['timestamp'],
+                    'routes_list': rotues_list 
+                }
+                formated_vehicles_list.append(formated_vehicle)
     
     with SessionLocal() as session:
         update_vehicles_status(session, formated_vehicles_list)
