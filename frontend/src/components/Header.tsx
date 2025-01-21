@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Logo from '../assets/logo.png';
 
 const Header: React.FC = () => {
@@ -11,12 +12,12 @@ const Header: React.FC = () => {
     return (
         <nav className="border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
             <div className="max-w-screen-xl flex items-center justify-between mx-auto p-4">
-                <a href="#" className="flex items-center space-x-3 rtl:space-x-reverse">
+                <Link to="/" className="flex items-center space-x-3 rtl:space-x-reverse">
                     <img src={Logo} className="h-10" alt="KMK Logo" />
-                    <a href="#" className="self-center text-lg sm:text-2xl font-semibold whitespace-nowrap dark:text-white">
+                    <span className="self-center text-lg sm:text-2xl font-semibold whitespace-nowrap dark:text-white">
                         RealTimeTransit
-                    </a>
-                </a>
+                    </span>
+                </Link>
 
                 <button
                     onClick={toggleMenu}
@@ -48,36 +49,36 @@ const Header: React.FC = () => {
                 >
                     <ul className="flex flex-col font-medium mt-4 rounded-lg bg-gray-50 dark:bg-gray-800 md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0">
                         <li>
-                            <a
-                                href="#"
+                            <Link
+                                to="/map"
                                 className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:dark:hover:text-blue-500"
                             >
                                 Mapa
-                            </a>
+                            </Link>
                         </li>
                         <li>
-                            <a
-                                href="#"
+                            <Link
+                                to="/lines"
                                 className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:dark:hover:text-blue-500"
                             >
                                 Linie
-                            </a>
+                            </Link>
                         </li>
                         <li>
-                            <a
-                                href="#"
+                            <Link
+                                to="/stops"
                                 className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:dark:hover:text-blue-500"
                             >
                                 Przystanki
-                            </a>
+                            </Link>
                         </li>
                         <li>
-                            <a
-                                href="#"
+                            <Link
+                                to="/statistics"
                                 className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:dark:hover:text-blue-500"
                             >
                                 Statystyka
-                            </a>
+                            </Link>
                         </li>
                     </ul>
                 </div>
