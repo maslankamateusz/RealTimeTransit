@@ -9,7 +9,7 @@ def import_vehicles_from_json(db: Session, json_filename: str, batch_size: int =
     json_path = os.path.join(os.path.dirname(__file__), 'data', json_filename)
     
     if not os.path.exists(json_path):
-        raise FileNotFoundError(f"Plik {json_filename} nie został znaleziony.")
+        raise FileNotFoundError(f"File {json_filename} was not found.")
 
     with open(json_path, "r", encoding="utf-8") as file:
         vehicles_data = json.load(file)
@@ -29,14 +29,14 @@ def import_vehicles_from_json(db: Session, json_filename: str, batch_size: int =
             if len(batch) >= batch_size or idx == len(vehicles_data) - 1:
                 db.add_all(batch)
                 db.commit()
-                print(f"Zaimportowano {len(batch)} pojazdów.")
+                print(f"Imported {len(batch)} vehicles.")
                 imported_count += len(batch)
                 batch.clear()  
 
         return imported_count
     except Exception as e:
         db.rollback()
-        print(f"Błąd podczas importu: {e}")
+        print(f"Error while importing: {e}")
         raise
 
 def delete_old_vehicle_statuses(session):
@@ -45,6 +45,7 @@ def delete_old_vehicle_statuses(session):
     session.commit()
 
 def update_vehicles_status(session, vehicles_data):
+    delete_old_vehicle_statuses(session)
     existing_statuses = {
         v.vehicle_id: v
         for v in session.query(VehiclesStatus).filter(
@@ -105,9 +106,6 @@ def handle_line_change(session,old_status, new_status):
             
         session.commit()
 
-        print(f"Pojazd {vehicle_old_id} zaktualizował linię z {vehicle_old_schedule_number} na {vehicle_new_schedule_number} na dzień {vehicle_old_date}.")
-    else:
-        print(f"Brak wpisu dla pojazdu {vehicle_old_id} na dzień {vehicle_old_date}.")
 
 
 def log_new_vehicle_to_daily_logs(session, vehicle):
@@ -126,5 +124,3 @@ def log_new_vehicle_to_daily_logs(session, vehicle):
     session.add(daily_log)
     session.commit()
     
-    print(f"Pojazd {vehicle['vehicle_id']} został zapisany do daily_logs na dzień {current_date}.")
-
