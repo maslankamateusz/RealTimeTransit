@@ -10,7 +10,7 @@ const Header: React.FC = () => {
     };
 
     return (
-        <nav className="border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+        <nav className="border-gray-200 bg-gray-800 dark:border-gray-700">
             <div className="max-w-screen-xl flex items-center justify-between mx-auto p-4">
                 <Link to="/" className="flex items-center space-x-3 rtl:space-x-reverse">
                     <img src={Logo} className="h-10" alt="KMK Logo" />
