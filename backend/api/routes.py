@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
 from ..services.static.gtfs_data_loader import load_gtfs_data
-from ..services.static.gtfs_processing import get_routes_list, get_stops_list, get_schedule_data, get_schedule_from_block_id, get_timetable_data, create_csv_with_schedule_numbers, get_schedule_number_from_block_id, get_routes_list_from_block_id
+from ..services.static.gtfs_processing import get_routes_dict, get_stops_list, get_schedule_data, get_schedule_from_block_id, get_timetable_data, create_csv_with_schedule_numbers, get_schedule_number_from_block_id, get_routes_list_from_block_id
 import pandas as pd
 from ..services.realtime.realtime_service import get_vehicle_realtime_raw_data, get_vehicle_with_route_name
 from sqlalchemy.orm import Session
@@ -47,8 +47,8 @@ def convert_schedule_for_json(schedule_data):
 @router.get("/api/routes")
 async def get_routes():
     data = get_gtfs_data()
-    routes = get_routes_list(data)
-    return jsonable_encoder(routes.to_dict(orient="records"))
+    routes = get_routes_dict(data).to_dict(orient="records")
+    return jsonable_encoder(routes)
 
 @router.get("/api/stops")
 async def get_stops(
@@ -96,10 +96,11 @@ async def get_timetable(
     route_number: str = Query(...),
     direction: int = Query(...),
     stop_id: str = Query(...),
+    service_id: str = Query(),
 ):
     data = get_gtfs_data()
     
-    schedule = get_timetable_data(data, route_number, direction, stop_id)
+    schedule = get_timetable_data(data, route_number, direction, stop_id, service_id)
     json_serializable_schedule = convert_schedule_for_json(schedule)
     return json_serializable_schedule 
 
