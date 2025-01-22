@@ -96,13 +96,24 @@ def handle_line_change(session,old_status, new_status):
         DailyLogs.date == vehicle_old_date
     ).first()
 
-
     if daily_log:
         if vehicle_new_schedule_number not in daily_log.schedule_number:
             daily_log.schedule_number = daily_log.schedule_number + [vehicle_new_schedule_number]
-
+        vehicle_new_formatted_routes_list = [148]
         if vehicle_new_formatted_routes_list not in daily_log.route_short_names:
-            daily_log.route_short_names = [daily_log.route_short_names[0], vehicle_new_formatted_routes_list]
+
+            max_length = max(len(route_list) for route_list in daily_log.route_short_names) if daily_log.route_short_names else 0
+            if len(vehicle_new_formatted_routes_list) < max_length:
+                last_value = vehicle_new_formatted_routes_list[-1]
+                vehicle_new_formatted_routes_list.extend([last_value] * (max_length - len(vehicle_new_formatted_routes_list)))
+ 
+            updated_routes = [
+                route_list + [route_list[-1]] * (len(vehicle_new_formatted_routes_list) - len(route_list))
+                for route_list in daily_log.route_short_names
+            ]
+            updated_routes.append(vehicle_new_formatted_routes_list)
+
+            daily_log.route_short_names = updated_routes
             
         session.commit()
 
@@ -111,7 +122,6 @@ def handle_line_change(session,old_status, new_status):
 def log_new_vehicle_to_daily_logs(session, vehicle):
     current_time = datetime.fromtimestamp(vehicle['timestamp']).replace(microsecond=0)
     current_date = current_time.date()
-
 
     routes_list = [int(route) for route in vehicle["routes_list"]]
     daily_log = DailyLogs(

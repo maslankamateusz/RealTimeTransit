@@ -19,8 +19,73 @@ def get_routes_dict(gtfs_data):
     routes_a = get_bus_routes_list(gtfs_data)
     routes_t = get_tram_routes_list(gtfs_data)
     routes_list = pd.concat([routes_a, routes_t], ignore_index=True)
-
     return routes_list
+
+def get_routes_list_with_labels(gtfs_data):
+    routes_a = get_bus_routes_list(gtfs_data).values
+    sorted_routes_a = routes_a[routes_a[:, 1].argsort()]
+
+    routes_t = get_tram_routes_list(gtfs_data).values
+    sorted_routes_t = routes_t[routes_t[:, 1].argsort()]
+
+    lines_dict = {
+        "Linie tramwajowe dzienne": [],
+        "Linie tramwajowe wspomagające": [],
+        "Linie tramwajowe KST": [],
+        "Linie tramwajowe nocne": [],
+        "Linie tramwajowe zastępcze": [],
+        "Linie tramwajowe cmentarne": [],
+        "Linie autobusowe miejskie": [],
+        "Linie autobusowe aglomeracyjne": [], 
+        "Linie autobusowe aglomeracyjne przyśpieszone": [], 
+        "Linie autobusowe miejskie przyśpieszone": [], 
+        "Linie autobusowe miejskie wspomagające": [], 
+        "Linie autobusowe miejskie nocne": [], 
+        "Linie autobusowe zastępcze": [], 
+        "Linie autobusowe cmentarne": [], 
+        "Linie autobusowe aglomeracyjne nocne": [], 
+    }
+
+    for route in sorted_routes_a:
+        line_number = int(route[1])
+        if line_number < 200:
+            lines_dict["Linie autobusowe miejskie"].append({route[1]: route[0]})
+        elif line_number < 300:
+            lines_dict["Linie autobusowe aglomeracyjne"].append({route[1]: route[0]})
+        elif line_number < 400:
+            lines_dict["Linie autobusowe aglomeracyjne przyśpieszone"].append({route[1]: route[0]})
+        elif line_number < 500:
+            lines_dict["Linie autobusowe miejskie przyśpieszone"].append({route[1]: route[0]})
+        elif line_number < 600:
+            lines_dict["Linie autobusowe miejskie wspomagające"].append({route[1]: route[0]})
+        elif line_number < 700:
+            lines_dict["Linie autobusowe miejskie nocne"].append({route[1]: route[0]})
+        elif line_number < 800:
+            lines_dict["Linie autobusowe zastępcze"].append({route[1]: route[0]})
+        elif line_number < 900:
+            lines_dict["Linie autobusowe cmentarne"].append({route[1]: route[0]})
+        elif line_number < 1000:
+            lines_dict["Linie autobusowe aglomeracyjne nocne"].append({route[1]: route[0]})
+
+    for route in sorted_routes_t:
+        line_number = int(route[1])
+        if line_number < 40:
+            lines_dict["Linie tramwajowe dzienne"].append({route[1]: route[0]})
+        elif line_number < 50:
+            lines_dict["Linie tramwajowe wspomagające"].append({route[1]: route[0]})
+        elif line_number < 60:
+            lines_dict["Linie tramwajowe KST"].append({route[1]: route[0]})
+        elif line_number < 70:
+            lines_dict["Linie tramwajowe nocne"].append({route[1]: route[0]})
+        elif line_number < 80:
+            lines_dict["Linie tramwajowe zastępcze"].append({route[1]: route[0]})
+        elif line_number < 90:
+            lines_dict["Linie tramwajowe cmentarne"].append({route[1]: route[0]})
+
+    return lines_dict
+
+
+    
 
 def get_routes_list(gtfs_data):
     routes_a = get_bus_routes_list(gtfs_data)
