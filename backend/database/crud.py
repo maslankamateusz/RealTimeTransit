@@ -99,7 +99,6 @@ def handle_line_change(session,old_status, new_status):
     if daily_log:
         if vehicle_new_schedule_number not in daily_log.schedule_number:
             daily_log.schedule_number = daily_log.schedule_number + [vehicle_new_schedule_number]
-        vehicle_new_formatted_routes_list = [148]
         if vehicle_new_formatted_routes_list not in daily_log.route_short_names:
 
             max_length = max(len(route_list) for route_list in daily_log.route_short_names) if daily_log.route_short_names else 0

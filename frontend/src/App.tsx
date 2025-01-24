@@ -5,6 +5,7 @@ import LinesPage from './pages/LinesPage';
 import StopsPage from './pages/StopsPage';
 import StatisticsPage from './pages/StatisticsPage';
 import HomePage from './pages/HomePage';
+import LineDetails from './pages/LineDetailsPage';
 
 function App() {
     return (
@@ -16,7 +17,8 @@ function App() {
                     <Route path="/map" element={<MapPage />} />
                     <Route path="/lines" element={<LinesPage />} />
                     <Route path="/stops" element={<StopsPage />} />
-                    <Route path="/statistics" element={<StatisticsPage />} 
+                    <Route path="/statistics" element={<StatisticsPage />} />
+                    <Route path="/lines/:lineNumber" element={<LineDetails />}
                     />
                 </Routes>
             </div>

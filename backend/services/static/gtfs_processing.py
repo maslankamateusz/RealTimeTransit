@@ -1,5 +1,6 @@
 import pandas as pd
 from collections import Counter
+from operator import itemgetter
 
 def get_bus_routes_list(gtfs_data):
     if 'route_id' in gtfs_data['routes_a'].index.names:
@@ -26,7 +27,7 @@ def get_routes_list_with_labels(gtfs_data):
     sorted_routes_a = routes_a[routes_a[:, 1].argsort()]
 
     routes_t = get_tram_routes_list(gtfs_data).values
-    sorted_routes_t = routes_t[routes_t[:, 1].argsort()]
+    sorted_routes_t = routes_t[routes_t[:, 1].astype(int).argsort()]
 
     lines_dict = {
         "Linie tramwajowe dzienne": [],
@@ -84,9 +85,6 @@ def get_routes_list_with_labels(gtfs_data):
 
     return lines_dict
 
-
-    
-
 def get_routes_list(gtfs_data):
     routes_a = get_bus_routes_list(gtfs_data)
     routes_t = get_tram_routes_list(gtfs_data)
@@ -143,22 +141,54 @@ def create_csv_with_schedule_numbers(gtfs_data):
 
         schedule_number_df_a = create_df_with_schedule_numbers(routes_data_a, trips_data_a, calendar_df_a)
         schedule_number_df_a.to_csv(file_path_a, sep=",", index=False) 
-        schedule_number_df_t = create_df_with_schedule_numbers(routes_data_t, trips_data_t, calendar_df_t)
+        schedule_number_df_t = create_df_with_schedule_numbers_tram(routes_data_t, trips_data_t, calendar_df_t)
         schedule_number_df_t.to_csv(file_path_t, sep=",", index=False) 
 
         return "Data saved"
     except Exception as e:
         print(f"An error occurred: {e}")
 
+def create_df_with_schedule_numbers_tram(routes_data, trips_data, calendar_df):
+    service_ids = calendar_df['service_id'].tolist()
+    
+    final_schedule_list = []
+    for service_id in service_ids:
+        shedule_list = []
+        block_ids = trips_data[trips_data['service_id'] == service_id]['block_id'].drop_duplicates().values
+        for block_id in block_ids:
+            route_ids = trips_data[trips_data['block_id'] == block_id]['route_id'].drop_duplicates().values
+            if(len(route_ids) > 1):
+                route_id = route_ids[-1]
+            else:
+                route_id = route_ids[0]
+            shedule_list.append({"block_id" : block_id, "route_id": route_id, "service_id" : service_id})
+        
+        sorted_objects = sorted(shedule_list, key=itemgetter('route_id', 'block_id'))
+        route_counters = {}
+        for obj in sorted_objects:
+            route_id = obj['route_id']
+            if route_id not in route_counters:
+                route_counters[route_id] = 1
+            route_short_name = routes_data[routes_data["route_id"] == route_id]["route_short_name"].values[0]
+
+            obj['schedule_number'] = f"{route_short_name}/{route_counters[route_id]:02}"
+            route_counters[route_id] += 1
+            if 'route_id' in obj:
+                del obj['route_id']
+            final_schedule_list.append(obj)
+    schedule_number_df = pd.DataFrame(final_schedule_list)
+    return schedule_number_df
+    
+
 def create_df_with_schedule_numbers(routes_data, trips_data, calendar_df):
     route_short_names = routes_data['route_short_name'].drop_duplicates().values.tolist()
     service_ids = calendar_df['service_id'].tolist()
-
     shedule_list = []
+
     for service_id in service_ids:
+        
         filtered_trips_data = trips_data[trips_data['service_id'] == service_id]
         block_ids = filtered_trips_data['block_id'].drop_duplicates().values
-        
         sorted_route_short_names = sorted(route_short_names, key=int)
         routes_list = []
         for route_short_name in sorted_route_short_names:
@@ -173,7 +203,6 @@ def create_df_with_schedule_numbers(routes_data, trips_data, calendar_df):
         first_block_id = int(routes_list[0][first_key][0])
 
         last_bloc = first_block_id - 1
-
         for route_block in routes_list:
             for route, blocks in route_block.items():
                 if blocks:
@@ -223,6 +252,11 @@ def get_schedule_data(gtfs_data, route_id, vehicle_type='bus'):
     sorted_block_ids = sorted(block_ids, key=lambda x: int(x.split('_')[1]))
     for block_id in sorted_block_ids:
         block_filtered_data = trips_data[trips_data['block_id'] == block_id]
+        route_short_names_list = []
+        route_ids = block_filtered_data['route_id'].drop_duplicates().values.tolist()
+        for route_id in route_ids:
+            route_short_names_list.append(get_route_short_name_from_route_id(gtfs_data, route_id, vehicle_type))
+
         service_id = block_filtered_data['service_id'].values[0]
         schedule_number = get_schedule_number_from_block_id(gtfs_data, block_id, service_id, vehicle_type)
 
@@ -244,7 +278,8 @@ def get_schedule_data(gtfs_data, route_id, vehicle_type='bus'):
             'service_id': service_id,
             'start_time': start_time,
             'end_time': end_time,
-            'service_days': days_with_service
+            'service_days': days_with_service,
+            'route_short_names': route_short_names_list
         }
         schedule_number_list.append(schedule_dict)
     
@@ -324,7 +359,6 @@ def get_schedule_number_from_block_id(gtfs_data, block_id, service_id, vehicle_t
         schedule_data = gtfs_data['schedule_num_a']
     else:
         schedule_data = gtfs_data['schedule_num_t']
-
     schedule_number = schedule_data[(schedule_data['block_id'] == block_id) & (schedule_data['service_id'] == service_id)]['schedule_number'].values[0]
     return schedule_number
 
