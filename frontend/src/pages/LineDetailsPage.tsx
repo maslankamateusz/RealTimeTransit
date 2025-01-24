@@ -13,15 +13,14 @@ const LineDetails: React.FC = () => {
     return <div>Error: No line number provided</div>;
   }
 
-  const { lineDetails, serviceDetails, loading, error } = useLineDetails(lineNumber, lineValue) as {
+  const [selectedService, setSelectedService] = useState<string | null>(null);
+  
+  const { lineDetails, serviceDetails, loading, error } = useLineDetails(lineNumber, lineValue, selectedService) as {
     lineDetails: any; 
     serviceDetails: ServiceDetails[];
     loading: boolean;
     error: string | null;
   };
-  
-
-  const [selectedService, setSelectedService] = useState<string | null>(null);
 
   useEffect(() => {
     if (lineDetails && lineDetails.length > 0) {
@@ -43,8 +42,6 @@ const LineDetails: React.FC = () => {
   };
 
   const handleDayChange = (service: string) => {
-    console.log("change", service);
-    //tu chcę teraz aby ponownie wywołać hooka, potrzeba innych 
     setSelectedService(service);
   }
 
