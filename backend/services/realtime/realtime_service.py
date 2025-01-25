@@ -136,3 +136,6 @@ def prepare_realtime_data_for_database(gtfs_data: dict = Depends(get_gtfs_data))
     
     with SessionLocal() as session:
         update_vehicles_status(session, formated_vehicles_list)
+
+
+

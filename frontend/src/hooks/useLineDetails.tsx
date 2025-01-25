@@ -47,7 +47,7 @@ const useLineDetails = (lineNumber: string, lineValue: string, service_id: strin
     };
 
     const processBlockData = (blocks_data: any, service_id: string) => {
-        const lineDetails = blocks_data.filter((block: any) => block.service_id === service_id);
+        let lineDetails = blocks_data.filter((block: any) => block.service_id === service_id);
         setLineDetails(lineDetails);
     };
 
@@ -56,7 +56,7 @@ const useLineDetails = (lineNumber: string, lineValue: string, service_id: strin
             try {
                 setLoading(true);
                 const response = await fetch(
-                    `http://127.0.0.1:8000/api/routes/schedule/plan/?route_id=${lineValue}&vehicle_type=${vehicle_type}`
+                    `http://127.0.0.1:8000/api/routes/schedule/plan?route_id=${lineValue}&vehicle_type=${vehicle_type}`
                 );
                 if (!response.ok) {
                     throw new Error('Failed to fetch line details');

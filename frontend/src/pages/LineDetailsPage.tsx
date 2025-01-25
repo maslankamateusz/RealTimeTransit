@@ -9,14 +9,24 @@ const LineDetails: React.FC = () => {
   const location = useLocation();
   const lineValue = location.state?.lineValue;
 
-  if (!lineNumber || !lineValue) {
-    return <div>Error: No line number provided</div>;
+  interface Vehicle {
+    vehicle_id: string;
+    timestamp: number;
+  }
+
+  interface Block {
+    block_id: string;
+    start_time: string;
+    end_time: string;
+    schedule_number: string;
+    route_short_names: string[];
+    vehicles: Vehicle[] | null;
   }
 
   const [selectedService, setSelectedService] = useState<string | null>(null);
-  
-  const { lineDetails, serviceDetails, loading, error } = useLineDetails(lineNumber, lineValue, selectedService) as {
-    lineDetails: any; 
+
+  const { lineDetails, serviceDetails, loading, error } = useLineDetails(lineNumber!, lineValue!, selectedService) as {
+    lineDetails: any;
     serviceDetails: ServiceDetails[];
     loading: boolean;
     error: string | null;
@@ -24,26 +34,47 @@ const LineDetails: React.FC = () => {
 
   useEffect(() => {
     if (lineDetails && lineDetails.length > 0) {
-      setSelectedService(lineDetails[0]['service_id']); 
+      setSelectedService(lineDetails[0]['service_id']);
     }
   }, [lineDetails]);
+
+  if (!lineNumber || !lineValue) {
+    return <div>Error: No line number provided</div>;
+  }
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
   const dayTranslations: { [key: string]: string } = {
-    monday: "poniedziałek",
-    tuesday: "wtorek",
-    wednesday: "środa",
-    thursday: "czwartek",
-    friday: "piątek",
-    saturday: "sobota",
-    sunday: "niedziela",
+    monday: 'poniedziałek',
+    tuesday: 'wtorek',
+    wednesday: 'środa',
+    thursday: 'czwartek',
+    friday: 'piątek',
+    saturday: 'sobota',
+    sunday: 'niedziela',
   };
 
   const handleDayChange = (service: string) => {
     setSelectedService(service);
-  }
+  };
+
+  const getTimeFromTimestamp = (timestamp: number) => {
+    const date = new Date(timestamp * 1000);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes === 0) {
+      return `${remainingSeconds} sek`;
+    }
+    return `${minutes} min ${remainingSeconds} sek`;
+  };
 
   return (
     <div className="text-gray-800 min-h-screen py-8">
@@ -78,7 +109,7 @@ const LineDetails: React.FC = () => {
               <div className="mb-6">
                 <form className="space-y-2">
                   {serviceDetails.map(([days, service], index) => {
-                    const dayLabel = days.map((day) => dayTranslations[day]).join(", ");
+                    const dayLabel = days.map((day) => dayTranslations[day]).join(', ');
                     const id = service;
 
                     return (
@@ -89,8 +120,8 @@ const LineDetails: React.FC = () => {
                           name="day"
                           className="mr-2"
                           value={service}
-                          checked={selectedService === service} 
-                          onChange={() => handleDayChange(service)} 
+                          checked={selectedService === service}
+                          onChange={() => handleDayChange(service)}
                         />
                         <label htmlFor={id}>{dayLabel}</label>
                       </div>
@@ -99,7 +130,7 @@ const LineDetails: React.FC = () => {
                 </form>
               </div>
 
-              <table className="table-auto w-full border-collapse border border-gray-300">
+              <table className="table-auto w-full border-collapse border border-gray-300 mr-10">
                 <thead>
                   <tr className="bg-gray-100">
                     <th className="border border-gray-300 p-2 text-center">Od</th>
@@ -110,47 +141,102 @@ const LineDetails: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                {lineDetails.map((block: { block_id: string, start_time: string, end_time: string, schedule_number: string , route_short_names: string[]}) => {
-                const startTimeWithoutSeconds: string = block.start_time.substring(0, 5);
-                const endTimeWithoutSeconds: string = block.end_time.substring(0, 5);
-                const lines = block.route_short_names;
-                
-                return (
-                    <tr key={block.block_id}>
-                        <td className="border border-gray-300 p-2 text-center">{startTimeWithoutSeconds}</td>
-                        <td className="border border-gray-300 p-2 text-center">{endTimeWithoutSeconds}</td>
-                        <td className="border border-gray-300 p-2 ">
-                          <div className='flex justify-center'>
+                  {lineDetails.map((block: Block) => {
+                    const startTimeWithoutSeconds: string = block.start_time.substring(0, 5);
+                    const endTimeWithoutSeconds: string = block.end_time.substring(0, 5);
+                    const [endHour, endMinute] = endTimeWithoutSeconds.split(':').map(Number);
+                    const now = new Date();
+                    const currentHour = now.getHours();
+                    const currentMinute = now.getMinutes();
+
+                    const isNightLine = block.route_short_names.some((line) => line.startsWith('6') || line.startsWith('9'));
+                    let isBeforeEndTime = false;
+
+                    if (isNightLine) {
+                      const adjustedEndHour = endHour + 24;
+                      isBeforeEndTime = currentHour < adjustedEndHour || (currentHour === adjustedEndHour && currentMinute < endMinute);
+                    } else {
+                      isBeforeEndTime = currentHour < endHour || (currentHour === endHour && currentMinute < endMinute);
+                    }
+
+                    const lines = block.route_short_names;
+                    const vehicles = block.vehicles;
+
+                    return (
+                      <tr key={block.block_id}>
+                        <td className="border border-gray-300 p-2 text-center text-lg">{startTimeWithoutSeconds}</td>
+                        <td className="border border-gray-300 p-2 text-center text-lg">{endTimeWithoutSeconds}</td>
+                        <td className="border border-gray-300 p-2">
+                          <div className="flex justify-center">
                             {lines.map((line) => {
                               const lineNumber = line;
-                            
                               const isNightLine = (String(lineNumber).startsWith('6') || String(lineNumber).startsWith('9')) && String(lineNumber).length > 1;
                               const isSubstituteLine = String(lineNumber).startsWith('7') && String(lineNumber).length > 1;
-                              
-                              return(
-                                <div className={`me-2 flex justify-center items-center text-center text-md font-semibold border transition-all
-                                  ${isNightLine ? 'bg-black text-white border-black' : isSubstituteLine ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-black border-gray-900 hover:bg-gray-100'
-                              }`}
-                                  style={{
-                                    width: '34px',
-                                    height: '34px',
-                                }}
-                                key={`${block.block_id}-${block.schedule_number}-${lines.indexOf(line)}`}
+
+                              return (
+                                <div
+                                  className={`me-2 flex justify-center items-center text-center text-md font-semibold border transition-all
+                                  ${isNightLine ? 'bg-black text-white border-black' : isSubstituteLine ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-black border-gray-900 hover:bg-gray-100'}`}
+                                  style={{ width: '34px', height: '34px' }}
+                                  key={`${block.block_id}-${block.schedule_number}-${lines.indexOf(line)}`}
                                 >
                                   {lineNumber}
                                 </div>
-                              )
+                              );
                             })}
                           </div>
-                            
                         </td>
-                        <td className="border border-gray-300 p-2 text-yellow-500 text-center" >⚠</td>
                         <td className="border border-gray-300 p-2 text-center">
-                        <a href="#" className="text-blue-600 hover:underline">
-                            {block.schedule_number}
-                        </a>
+                          {vehicles == null ? (
+                            null
+                          ) : vehicles.length === 0 ? (
+                            '⚠'
+                          ) : (
+                            vehicles.map((vehicle) => {
+                              const firstTwo = vehicle.vehicle_id.slice(0, 2);
+                              const rest = vehicle.vehicle_id.slice(2);
+                              const timestamp = vehicle.timestamp;
+                              const currentTimestampInSeconds = Math.floor(Date.now() / 1000);
+                              const seconds = currentTimestampInSeconds - timestamp;
+                              const time = formatTime(seconds);
+                              const timeString = getTimeFromTimestamp(timestamp);
+
+                              const [endHour, endMinute] = block.end_time.substring(0, 5).split(':').map(Number);
+                              const now = new Date();
+                              const currentHour = now.getHours();
+                              const currentMinute = now.getMinutes();
+
+                              const isAfterEndTime = currentHour > endHour || (currentHour === endHour && currentMinute > endMinute);
+
+                              let statusColor = 'bg-yellow-500';
+                              if (seconds <= 600) {
+                                statusColor = 'bg-green-500';
+                              } 
+                              else if (isAfterEndTime) {
+                                statusColor = 'bg-blue-500'; 
+                              }
+
+                              return (
+                                <div key={vehicle.vehicle_id} className="flex items-center justify-center my-1 relative group">
+                                  <a href="#" className="text-lg text-gray-800 hover:underline">
+                                    <span className="text-sm">{firstTwo}</span>
+                                    {rest}
+                                  </a>
+                                  <span className={`w-2.5 h-2.5 rounded-full ${statusColor} mt-[1px] ml-2`} />
+                                  <div className="absolute right-4 bottom-3 transform -translate-y-1/2 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded shadow-lg">
+                                    Ostatnia aktualizacja: {time} temu, o godzinie: {timeString}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
                         </td>
-                    </tr>
+                        <td className="border border-gray-300 p-2 text-center">
+                          <a href="#" className="text-blue-600 hover:underline text-lg">
+                            {block.schedule_number}
+                          </a>
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>
