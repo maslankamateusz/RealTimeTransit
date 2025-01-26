@@ -133,34 +133,18 @@ def log_new_vehicle_to_daily_logs(session, vehicle):
     session.add(daily_log)
     session.commit()
     
-# def get_vehicle_ids_by_schedule_number(session, schedule_number):
-#     vehicles = session.query(VehiclesStatus.vehicle_id).filter(
-#         VehiclesStatus.schedule_number == schedule_number
-#     ).all()
-    
-#     if vehicles:
-#         vehicle_ids = [vehicle[0] for vehicle in vehicles]  
-        
-#         if len(vehicle_ids) > 1:
-#             vehicle_ids.reverse()
-        
-#         return vehicle_ids
-#     return []
-
 def get_vehicle_ids_with_timestamps_by_schedule_number(session, schedule_number):
     vehicles = session.query(VehiclesStatus.vehicle_id, VehiclesStatus.last_updated).filter(
         VehiclesStatus.schedule_number == schedule_number
     ).all()
     
     if vehicles:
-        # Lista obiektów z vehicle_id i timestamp w formacie liczby
         vehicle_data = [
             {"vehicle_id": vehicle[0], "timestamp": int(vehicle[1].timestamp())}
             for vehicle in vehicles
         ]
         
         if len(vehicle_data) > 1:
-            # Odwróć kolejność, jeśli jest więcej niż jeden pojazd
             vehicle_data.reverse()
         
         return vehicle_data

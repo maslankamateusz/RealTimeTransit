@@ -53,10 +53,9 @@ async def get_routes():
 @router.get("/api/stops")
 async def get_stops(
     route_number: str = Query(...),
-    direction: int = Query(...),
 ):
     data = get_gtfs_data()
-    stops = get_stops_list(data, route_number, direction)
+    stops = get_stops_list(data, route_number)
     return jsonable_encoder(stops)
 
 @router.get("/api/routes/schedule/plan")

@@ -95,7 +95,9 @@ def get_routes_list(gtfs_data):
 
     return routes_list
 
-def get_stops_list(gtfs_data, route_number, direction):
+
+
+def get_stops_list(gtfs_data, route_number):
     routes_list = get_routes_dict(gtfs_data)
     
     matching_routes = routes_list[routes_list['route_short_name'] == str(route_number)]
@@ -116,16 +118,45 @@ def get_stops_list(gtfs_data, route_number, direction):
     trips_for_route = trips[trips['route_id'] == route_id]
     filtered_trips = trips[trips['route_id'] == route_id][['direction_id', 'trip_headsign']].drop_duplicates()
 
+    direction_ids = [0,1]
+    for direction_id in direction_ids:
+        filtered_trips = trips_for_route[trips_for_route['direction_id'] == direction_id]
 
-    directions_list = []
-    for direction_id, group in filtered_trips.groupby('direction_id'):
-        filtered_trips = trips_for_route[trips_for_route['direction_id'] == int(direction)]
-        trip_ids = filtered_trips.index.unique()
-        stops_for_all_trips = stop_times.loc[trip_ids].merge(stops, on='stop_id', how='inner')
+    if len(route_number) <= 2:
+        test_number = len(filtered_trips['block_id'].drop_duplicates())*2
+    else:
+        test_number = 1
+
+    directions_with_trip_headsign_list = []
+    grouped_directions_dict = {} 
+
+    for direction_id in direction_ids:
+        filtered_trips = trips_for_route[trips_for_route['direction_id'] == direction_id]['trip_headsign'].values
+        trip_headsign_counts = Counter(filtered_trips)
+        valid_trip_headsigns = [trip_headsign for trip_headsign, count in trip_headsign_counts.items() if count > test_number]
+        for trip_headsign in valid_trip_headsigns:
+            directions_with_trip_headsign_list.append({direction_id: trip_headsign})
+        grouped_directions_dict[direction_id] = valid_trip_headsigns
+    
+    for direction_id in grouped_directions_dict:
+        trip_headsign = grouped_directions_dict[direction_id][0]
+        filtered_trips = trips_for_route[trips_for_route['trip_headsign'] == trip_headsign]
+        trip_id = filtered_trips.index.tolist()[1]
+
+        if 'trip_id' in stop_times.index.names:
+            stop_times = stop_times.reset_index()
+        stop_times_with_correct_trip_id = stop_times[stop_times['trip_id'] == trip_id]
+        stops_for_all_trips = stop_times_with_correct_trip_id.merge(stops, on='stop_id', how='inner')
         stops_dict = stops_for_all_trips[['stop_id', 'stop_name']].drop_duplicates().to_dict(orient='records')
-        directions_list.append([direction_id, group['trip_headsign'].tolist(), stops_dict])
 
-    return directions_list
+        grouped_directions_dict[direction_id] = [grouped_directions_dict[direction_id], stops_dict]
+
+    return grouped_directions_dict
+
+
+
+
+
 
 
 
