@@ -1,5 +1,10 @@
+import datetime
 import pandas as pd
 from collections import Counter
+from operator import itemgetter
+from ...database.crud import get_vehicle_ids_with_timestamps_by_schedule_number
+from ...database.session import SessionLocal
+
 
 def get_bus_routes_list(gtfs_data):
     if 'route_id' in gtfs_data['routes_a'].index.names:
@@ -19,8 +24,69 @@ def get_routes_dict(gtfs_data):
     routes_a = get_bus_routes_list(gtfs_data)
     routes_t = get_tram_routes_list(gtfs_data)
     routes_list = pd.concat([routes_a, routes_t], ignore_index=True)
-
     return routes_list
+
+def get_routes_list_with_labels(gtfs_data):
+    routes_a = get_bus_routes_list(gtfs_data).values
+    sorted_routes_a = routes_a[routes_a[:, 1].argsort()]
+
+    routes_t = get_tram_routes_list(gtfs_data).values
+    sorted_routes_t = routes_t[routes_t[:, 1].astype(int).argsort()]
+
+    lines_dict = {
+        "Linie tramwajowe dzienne": [],
+        "Linie tramwajowe wspomagające": [],
+        "Linie tramwajowe KST": [],
+        "Linie tramwajowe nocne": [],
+        "Linie tramwajowe zastępcze": [],
+        "Linie tramwajowe cmentarne": [],
+        "Linie autobusowe miejskie": [],
+        "Linie autobusowe aglomeracyjne": [], 
+        "Linie autobusowe aglomeracyjne przyśpieszone": [], 
+        "Linie autobusowe miejskie wspomagające": [], 
+        "Linie autobusowe miejskie przyśpieszone": [], 
+        "Linie autobusowe miejskie nocne": [], 
+        "Linie autobusowe zastępcze": [], 
+        "Linie autobusowe cmentarne": [], 
+        "Linie autobusowe aglomeracyjne nocne": [], 
+    }
+    for route in sorted_routes_a:
+        line_number = int(route[1])
+        if line_number < 200:
+            lines_dict["Linie autobusowe miejskie"].append({route[1]: route[0]})
+        elif line_number < 300:
+            lines_dict["Linie autobusowe aglomeracyjne"].append({route[1]: route[0]})
+        elif line_number < 400:
+            lines_dict["Linie autobusowe aglomeracyjne przyśpieszone"].append({route[1]: route[0]})
+        elif line_number < 500:
+            lines_dict["Linie autobusowe miejskie wspomagające"].append({route[1]: route[0]})
+        elif line_number < 600:
+            lines_dict["Linie autobusowe miejskie przyśpieszone"].append({route[1]: route[0]})
+        elif line_number < 700:
+            lines_dict["Linie autobusowe miejskie nocne"].append({route[1]: route[0]})
+        elif line_number < 800:
+            lines_dict["Linie autobusowe zastępcze"].append({route[1]: route[0]})
+        elif line_number < 900:
+            lines_dict["Linie autobusowe cmentarne"].append({route[1]: route[0]})
+        elif line_number < 1000:
+            lines_dict["Linie autobusowe aglomeracyjne nocne"].append({route[1]: route[0]})
+
+    for route in sorted_routes_t:
+        line_number = int(route[1])
+        if line_number < 40:
+            lines_dict["Linie tramwajowe dzienne"].append({route[1]: route[0]})
+        elif line_number < 50:
+            lines_dict["Linie tramwajowe wspomagające"].append({route[1]: route[0]})
+        elif line_number < 60:
+            lines_dict["Linie tramwajowe KST"].append({route[1]: route[0]})
+        elif line_number < 70:
+            lines_dict["Linie tramwajowe nocne"].append({route[1]: route[0]})
+        elif line_number < 80:
+            lines_dict["Linie tramwajowe zastępcze"].append({route[1]: route[0]})
+        elif line_number < 90:
+            lines_dict["Linie tramwajowe cmentarne"].append({route[1]: route[0]})
+
+    return lines_dict
 
 def get_routes_list(gtfs_data):
     routes_a = get_bus_routes_list(gtfs_data)
@@ -29,10 +95,11 @@ def get_routes_list(gtfs_data):
 
     return routes_list
 
-def get_stops_list(gtfs_data, route_number, direction):
+
+def get_stops_list(gtfs_data, route_number):
     routes_list = get_routes_dict(gtfs_data)
-    matching_routes = routes_list[routes_list['route_short_name'] == str(route_number)]
     
+    matching_routes = routes_list[routes_list['route_short_name'] == str(route_number)]
     if matching_routes.empty:
         raise ValueError(f"No route found for route number {route_number}")
     if len(matching_routes) > 1:
@@ -48,11 +115,51 @@ def get_stops_list(gtfs_data, route_number, direction):
     stops = gtfs_data[stops_key]
 
     trips_for_route = trips[trips['route_id'] == route_id]
-    filtered_trips = trips_for_route[trips_for_route['direction_id'] == int(direction)]
+    filtered_trips = trips[trips['route_id'] == route_id][['direction_id', 'trip_headsign']].drop_duplicates()
 
-    trip_ids = filtered_trips.index.unique()
-    stops_for_all_trips = stop_times.loc[trip_ids].merge(stops, on='stop_id', how='inner')
-    return stops_for_all_trips[['stop_id', 'stop_name']].drop_duplicates().to_dict(orient='records')
+    direction_ids = [0,1]
+    for direction_id in direction_ids:
+        filtered_trips = trips_for_route[trips_for_route['direction_id'] == direction_id]
+
+    if len(route_number) <= 2:
+        test_number = len(filtered_trips['block_id'].drop_duplicates())*2
+    else:
+        test_number = 1
+
+    directions_with_trip_headsign_list = []
+    grouped_directions_dict = {} 
+
+    for direction_id in direction_ids:
+        filtered_trips = trips_for_route[trips_for_route['direction_id'] == direction_id]['trip_headsign'].values
+        trip_headsign_counts = Counter(filtered_trips)
+        valid_trip_headsigns = [trip_headsign for trip_headsign, count in trip_headsign_counts.items() if count > test_number]
+        for trip_headsign in valid_trip_headsigns:
+            directions_with_trip_headsign_list.append({direction_id: trip_headsign})
+        grouped_directions_dict[direction_id] = valid_trip_headsigns
+    
+    if 'trip_id' in stop_times.index.names:
+            stop_times = stop_times.reset_index()
+
+    for direction_id, trip_headsigns in grouped_directions_dict.items():
+        longest_stops_dict_length = 0
+        longest_stops_dict = None
+        for trip_headsign in trip_headsigns:
+            filtered_trips = trips_for_route[trips_for_route['trip_headsign'] == trip_headsign]
+            if filtered_trips.empty:
+                continue 
+            trip_ids = filtered_trips['shape_id'].drop_duplicates().index
+            for trip_id in trip_ids:
+                stop_times_with_correct_trip_id = stop_times[stop_times['trip_id'] == trip_id]
+                stops_for_all_trips = stop_times_with_correct_trip_id.merge(stops, on='stop_id', how='inner')
+                stops_dict = stops_for_all_trips[['stop_id', 'stop_name']].drop_duplicates().to_dict(orient='records')
+                if len(stops_dict) > longest_stops_dict_length:
+                    longest_stops_dict_length = len(stops_dict)
+                    longest_stops_dict = stops_dict
+
+        grouped_directions_dict[direction_id] = [trip_headsigns, longest_stops_dict]
+
+    return grouped_directions_dict
+
 
 def get_route_short_name_from_route_id(gtfs_data, route_id, vehicle_type):
 
@@ -78,22 +185,54 @@ def create_csv_with_schedule_numbers(gtfs_data):
 
         schedule_number_df_a = create_df_with_schedule_numbers(routes_data_a, trips_data_a, calendar_df_a)
         schedule_number_df_a.to_csv(file_path_a, sep=",", index=False) 
-        schedule_number_df_t = create_df_with_schedule_numbers(routes_data_t, trips_data_t, calendar_df_t)
+        schedule_number_df_t = create_df_with_schedule_numbers_tram(routes_data_t, trips_data_t, calendar_df_t)
         schedule_number_df_t.to_csv(file_path_t, sep=",", index=False) 
 
         return "Data saved"
     except Exception as e:
         print(f"An error occurred: {e}")
 
+def create_df_with_schedule_numbers_tram(routes_data, trips_data, calendar_df):
+    service_ids = calendar_df['service_id'].tolist()
+    
+    final_schedule_list = []
+    for service_id in service_ids:
+        shedule_list = []
+        block_ids = trips_data[trips_data['service_id'] == service_id]['block_id'].drop_duplicates().values
+        for block_id in block_ids:
+            route_ids = trips_data[trips_data['block_id'] == block_id]['route_id'].drop_duplicates().values
+            if(len(route_ids) > 1):
+                route_id = route_ids[-1]
+            else:
+                route_id = route_ids[0]
+            shedule_list.append({"block_id" : block_id, "route_id": route_id, "service_id" : service_id})
+        
+        sorted_objects = sorted(shedule_list, key=itemgetter('route_id', 'block_id'))
+        route_counters = {}
+        for obj in sorted_objects:
+            route_id = obj['route_id']
+            if route_id not in route_counters:
+                route_counters[route_id] = 1
+            route_short_name = routes_data[routes_data["route_id"] == route_id]["route_short_name"].values[0]
+
+            obj['schedule_number'] = f"{route_short_name}/{route_counters[route_id]:02}"
+            route_counters[route_id] += 1
+            if 'route_id' in obj:
+                del obj['route_id']
+            final_schedule_list.append(obj)
+    schedule_number_df = pd.DataFrame(final_schedule_list)
+    return schedule_number_df
+    
+
 def create_df_with_schedule_numbers(routes_data, trips_data, calendar_df):
     route_short_names = routes_data['route_short_name'].drop_duplicates().values.tolist()
     service_ids = calendar_df['service_id'].tolist()
-
     shedule_list = []
+
     for service_id in service_ids:
+        
         filtered_trips_data = trips_data[trips_data['service_id'] == service_id]
         block_ids = filtered_trips_data['block_id'].drop_duplicates().values
-        
         sorted_route_short_names = sorted(route_short_names, key=int)
         routes_list = []
         for route_short_name in sorted_route_short_names:
@@ -108,7 +247,6 @@ def create_df_with_schedule_numbers(routes_data, trips_data, calendar_df):
         first_block_id = int(routes_list[0][first_key][0])
 
         last_bloc = first_block_id - 1
-
         for route_block in routes_list:
             for route, blocks in route_block.items():
                 if blocks:
@@ -132,6 +270,20 @@ def get_block_id_list_for_route_short_name(gtfs_data, route_short_name, vehicle_
     filtered_schedule_data = schedule_data[schedule_data["schedule_number"].str.contains(route_short_name)]
     return filtered_schedule_data.values
 
+def check_for_realtime_data(schedule_number):
+    with SessionLocal() as session:
+        return get_vehicle_ids_with_timestamps_by_schedule_number(session, schedule_number)
+    return None
+
+def adjust_end_time(end_time):
+    time_parts = end_time.split(":")
+    hours = int(time_parts[0])
+    minutes = int(time_parts[1])
+
+    if hours >= 24:
+        hours -= 24
+
+    return f"{hours:02}:{minutes:02}"
 
 def get_schedule_data(gtfs_data, route_id, vehicle_type='bus'):
     days_of_week = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
@@ -158,6 +310,11 @@ def get_schedule_data(gtfs_data, route_id, vehicle_type='bus'):
     sorted_block_ids = sorted(block_ids, key=lambda x: int(x.split('_')[1]))
     for block_id in sorted_block_ids:
         block_filtered_data = trips_data[trips_data['block_id'] == block_id]
+        route_short_names_list = []
+        route_ids = block_filtered_data['route_id'].drop_duplicates().values.tolist()
+        for route_id in route_ids:
+            route_short_names_list.append(get_route_short_name_from_route_id(gtfs_data, route_id, vehicle_type))
+
         service_id = block_filtered_data['service_id'].values[0]
         schedule_number = get_schedule_number_from_block_id(gtfs_data, block_id, service_id, vehicle_type)
 
@@ -168,22 +325,35 @@ def get_schedule_data(gtfs_data, route_id, vehicle_type='bus'):
         last_trip_id = block_filtered_data.iloc[-1].name
         filtred_end_time_data = stop_times_data[stop_times_data['trip_id'] == last_trip_id]
         end_time = filtred_end_time_data.departure_time.values[-1]
-
+        adjusted_end_time = adjust_end_time(end_time)
         service_id = block_filtered_data["service_id"].values[0]
         service_day = calendar_data[calendar_data['service_id'] == service_id].copy()
         days_with_service = service_day[days_of_week].loc[:, service_day[days_of_week].iloc[0] == 1].columns.tolist()
         
+        today = datetime.datetime.today()
+        day_of_week = today.strftime('%A').lower()
+
+        if day_of_week in days_with_service:
+            vehicle_list = check_for_realtime_data(schedule_number)
+            
+        else:
+            vehicle_list = None
+        
+
         schedule_dict = {
             'block_id': block_id,
             'schedule_number': schedule_number,
             'service_id': service_id,
             'start_time': start_time,
-            'end_time': end_time,
-            'service_days': days_with_service
+            'end_time': adjusted_end_time,
+            'service_days': days_with_service,
+            'route_short_names': route_short_names_list,
+            'vehicles': vehicle_list
         }
         schedule_number_list.append(schedule_dict)
     
     return schedule_number_list
+
 
 def get_trips_data_from_vehicle_type(gtfs_data, vehicle_type):
     if vehicle_type == 'bus':
@@ -259,7 +429,6 @@ def get_schedule_number_from_block_id(gtfs_data, block_id, service_id, vehicle_t
         schedule_data = gtfs_data['schedule_num_a']
     else:
         schedule_data = gtfs_data['schedule_num_t']
-
     schedule_number = schedule_data[(schedule_data['block_id'] == block_id) & (schedule_data['service_id'] == service_id)]['schedule_number'].values[0]
     return schedule_number
 
