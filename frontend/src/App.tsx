@@ -11,7 +11,7 @@ function App() {
     return (
         <Router>
             <Header />
-            <div className="p-4">
+            <div>
                 <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/map" element={<MapPage />} />
