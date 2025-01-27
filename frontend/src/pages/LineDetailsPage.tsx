@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import useLineDetails from '../hooks/useLineDetails';
 import ServiceSelection from '../components/ServiceSelection';
 import BlockTable from '../components/BlockTable';
@@ -8,11 +8,9 @@ import TimetableSection from '../components/TimetableSection';
 
 const LineDetails: React.FC = () => {
   const { lineNumber } = useParams<{ lineNumber: string }>();
-  const location = useLocation();
-  const lineValue = location.state?.lineValue;
 
   const [selectedService, setSelectedService] = useState<string | null>(null);
-  const { lineDetails, serviceDetails, loading, error } = useLineDetails(lineNumber!, lineValue!, selectedService);
+  const { lineDetails, serviceDetails, loading, error } = useLineDetails(lineNumber!, selectedService);
  
   useEffect(() => {
     if (lineDetails && lineDetails.length > 0) {

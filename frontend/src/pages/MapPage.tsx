@@ -199,6 +199,7 @@ const MapPage: React.FC = () => {
         <DynamicZoomHandler setZoom={setZoom} />
 
         {realtimeData.map((vehicle: RealtimeVehicleData) => (
+            
           <Marker
             key={vehicle.vehicle_id}
             position={[vehicle.latitude, vehicle.longitude]}
@@ -208,15 +209,26 @@ const MapPage: React.FC = () => {
                 : tramIcon(vehicle.route_short_name, vehicle.bearing, vehicle.vehicle_id, iconSize)
             }
           >
-            <Popup>
-            Linia: <a className='text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500' href={`/lines/${vehicle.route_short_name}`}>{vehicle.route_short_name}</a>
+        <Popup>
+            Linia: 
+            <a
+                href={`/lines/${vehicle.route_short_name}`}
+                className='text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500'
+            >
+                {vehicle.route_short_name}
+            </a>
             <br />
-            Kierunek: <a className='text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500' href={`/stops/${vehicle.trip_headsign}`}>{vehicle.trip_headsign}</a>
+            Kierunek: 
+            <a className='text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500' href={`/stops/${vehicle.trip_headsign}`}>
+                {vehicle.trip_headsign}
+            </a>
             <br />
-            Numer taborowy: <a className='text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500' href={`/vehicle/${vehicle.vehicle_id}`}>
-            <span className='text-xs'>{vehicle.vehicle_id.slice(0,2)}</span>{vehicle.vehicle_id.slice(2)}
+            Numer taborowy: 
+            <a className='text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500' href={`/vehicle/${vehicle.vehicle_id}`}>
+                <span className='text-xs'>{vehicle.vehicle_id.slice(0, 2)}</span>{vehicle.vehicle_id.slice(2)}
             </a>
             </Popup>
+
 
           </Marker>
         ))}

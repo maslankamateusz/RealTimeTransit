@@ -52,7 +52,7 @@ async def get_routes():
 
 @router.get("/api/stops")
 async def get_stops(
-    route_number: str = Query(...),
+    route_number: str = Query(...)
 ):
     data = get_gtfs_data()
     stops = get_stops_list(data, route_number)
@@ -60,11 +60,10 @@ async def get_stops(
 
 @router.get("/api/routes/schedule/plan")
 async def get_schedule_plan(
-    route_id: str = Query(...),
-    vehicle_type: str = Query(...)
+    route_name: str = Query(...)
 ):
     data = get_gtfs_data()
-    schedule = get_schedule_data(data, route_id, vehicle_type)
+    schedule = get_schedule_data(data, route_name)
     json_serializable_schedule = convert_schedule_for_json(schedule)
     return json_serializable_schedule
 

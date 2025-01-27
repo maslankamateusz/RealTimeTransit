@@ -285,20 +285,27 @@ def adjust_end_time(end_time):
 
     return f"{hours:02}:{minutes:02}"
 
-def get_schedule_data(gtfs_data, route_id, vehicle_type='bus'):
+def get_schedule_data(gtfs_data, route_name):
     days_of_week = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-    if vehicle_type == 'bus':
-        trips_data = gtfs_data['trips_a']
-        stop_times_data = gtfs_data['stop_times_a']
-        calendar_data = gtfs_data['calendar_a']
-    elif vehicle_type == 'tram':
+
+    if len(route_name) < 3:
+        vehicle_type = 'tram'
+        routes_data = gtfs_data['routes_t']
         trips_data = gtfs_data['trips_t']
         stop_times_data = gtfs_data['stop_times_t']
         calendar_data = gtfs_data['calendar_t']
     else:
-        raise ValueError("Invalid vehicle type. Must be 'bus' or 'tram'.")
+        vehicle_type = 'bus'
+        routes_data = gtfs_data['routes_a']
+        trips_data = gtfs_data['trips_a']
+        stop_times_data = gtfs_data['stop_times_a']
+        calendar_data = gtfs_data['calendar_a']
+
+    if 'route_id' in routes_data.index.names:
+        routes_data.reset_index(inplace=True)
+    route_id = routes_data[routes_data['route_short_name'] == route_name]['route_id'].values[0]
  
-    filtered_data = trips_data.loc[(trips_data['route_id'] == route_id) ]
+    filtered_data = trips_data.loc[(trips_data['route_id'] == route_id)]
     if 'trip_id' in filtered_data.index.names:
         filtered_data.reset_index(inplace=True)
     

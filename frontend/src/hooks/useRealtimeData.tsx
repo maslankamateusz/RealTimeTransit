@@ -13,9 +13,7 @@ const useRealtimeData = () => {
         if (!response.ok) {
           throw new Error('Failed to fetch data');
         }
-
         const data = await response.json();
-        console.log("Świerze dane jak bułeczki", data);
         
         setRealtimeData(data)
       } catch (error) {
