@@ -96,7 +96,6 @@ def get_routes_list(gtfs_data):
     return routes_list
 
 
-
 def get_stops_list(gtfs_data, route_number):
     routes_list = get_routes_dict(gtfs_data)
     
@@ -138,27 +137,28 @@ def get_stops_list(gtfs_data, route_number):
             directions_with_trip_headsign_list.append({direction_id: trip_headsign})
         grouped_directions_dict[direction_id] = valid_trip_headsigns
     
-    for direction_id in grouped_directions_dict:
-        trip_headsign = grouped_directions_dict[direction_id][0]
-        filtered_trips = trips_for_route[trips_for_route['trip_headsign'] == trip_headsign]
-        trip_id = filtered_trips.index.tolist()[1]
-
-        if 'trip_id' in stop_times.index.names:
+    if 'trip_id' in stop_times.index.names:
             stop_times = stop_times.reset_index()
-        stop_times_with_correct_trip_id = stop_times[stop_times['trip_id'] == trip_id]
-        stops_for_all_trips = stop_times_with_correct_trip_id.merge(stops, on='stop_id', how='inner')
-        stops_dict = stops_for_all_trips[['stop_id', 'stop_name']].drop_duplicates().to_dict(orient='records')
 
-        grouped_directions_dict[direction_id] = [grouped_directions_dict[direction_id], stops_dict]
+    for direction_id, trip_headsigns in grouped_directions_dict.items():
+        longest_stops_dict_length = 0
+        longest_stops_dict = None
+        for trip_headsign in trip_headsigns:
+            filtered_trips = trips_for_route[trips_for_route['trip_headsign'] == trip_headsign]
+            if filtered_trips.empty:
+                continue 
+            trip_ids = filtered_trips['shape_id'].drop_duplicates().index
+            for trip_id in trip_ids:
+                stop_times_with_correct_trip_id = stop_times[stop_times['trip_id'] == trip_id]
+                stops_for_all_trips = stop_times_with_correct_trip_id.merge(stops, on='stop_id', how='inner')
+                stops_dict = stops_for_all_trips[['stop_id', 'stop_name']].drop_duplicates().to_dict(orient='records')
+                if len(stops_dict) > longest_stops_dict_length:
+                    longest_stops_dict_length = len(stops_dict)
+                    longest_stops_dict = stops_dict
+
+        grouped_directions_dict[direction_id] = [trip_headsigns, longest_stops_dict]
 
     return grouped_directions_dict
-
-
-
-
-
-
-
 
 
 def get_route_short_name_from_route_id(gtfs_data, route_id, vehicle_type):

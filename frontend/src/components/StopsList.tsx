@@ -29,7 +29,7 @@ const StopsList: React.FC<StopsListProps> = ({ lineNumber }) => {
       <h2 className="text-2xl font-semibold mb-4">Kierunek</h2>
       <button
         onClick={() => setSelectedDirection(0)} 
-        className={`px-4 py-2 ${selectedDirection === 0 ? 'bg-blue-500 text-white' : 'bg-gray-300'}`}
+        className={`px-4 py-2 ${selectedDirection === 0 ? 'bg-gray-800 text-white' : 'bg-gray-300'}`}
       >
         {direction1.map((direction:string, index:number) => (
           <span key={direction}>
@@ -43,7 +43,7 @@ const StopsList: React.FC<StopsListProps> = ({ lineNumber }) => {
 
       <button
         onClick={() => setSelectedDirection(1)} 
-        className={`px-4 py-2 ${selectedDirection === 1 ? 'bg-blue-500 text-white' : 'bg-gray-300'}`}
+        className={`px-4 py-2 ${selectedDirection === 1 ? 'bg-gray-800 text-white' : 'bg-gray-300'}`}
       >
         {direction2.map((direction:string, index:number) => (
           <span key={direction}>
