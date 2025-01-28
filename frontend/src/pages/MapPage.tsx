@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import useRealtimeData from '../hooks/useRealtimeData';
 import useStopListWithLocationData from '../hooks/useStopListWithLocationData';
-import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker } from 'react-leaflet';
+import useShapesPointData from '../hooks/useShapesPointData';
+import { MapContainer, TileLayer, Marker, Popup, CircleMarker, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -34,7 +35,6 @@ interface StopsData {
   stop_lat: number;
   stop_lon: number;
   type: string;
-
 }
 
 const busIcon = (line: string, direction: number, vehicleId: string, iconSize: number) => {
@@ -42,11 +42,7 @@ const busIcon = (line: string, direction: number, vehicleId: string, iconSize: n
   return new L.DivIcon({
     className: 'leaflet-div-icon',
     html: `
-      <div class="relative group" style="
-        position: relative;
-        width: ${iconSize}px;
-        height: ${iconSize}px;
-      ">
+      <div class="relative group" style="position: relative; width: ${iconSize}px; height: ${iconSize}px;">
         <div class="absolute hidden group-hover:flex -top-10 left-1/2 transform -translate-x-1/2 flex-col items-center text-center">
           <div class="bg-white text-black p-3 rounded-lg shadow-lg border-2 border-gray-400 font-medium ">
             <span class="whitespace-nowrap text-xs"> ${vehicleId.slice(0,2)}<span class="text-base ps-[1px]">${vehicleId.slice(2)} </span> </span>
@@ -54,47 +50,11 @@ const busIcon = (line: string, direction: number, vehicleId: string, iconSize: n
           <div class="w-2 h-2 bg-black rotate-45 -mt-1"></div>
         </div>
 
-        <div style="
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%) rotate(${direction}deg);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: ${iconSize}px;
-          height: ${iconSize}px;
-          opacity: .9;
-        ">
-          <div style="
-            background-color: #007bff;
-            color: white;
-            font-weight: bold;
-            font-size: ${iconSize * 0.26}px;
-            width: ${iconSize * 0.6}px;
-            height: ${iconSize * 0.6}px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            z-index: 2;
-            transform: rotate(${-direction}deg);
-            border: 2px solid #0056b3;
-          ">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(${direction}deg); display: flex; align-items: center; justify-content: center; width: ${iconSize}px; height: ${iconSize}px; opacity: .9;">
+          <div style="background-color: #007bff; color: white; font-weight: bold; font-size: ${iconSize * 0.26}px; width: ${iconSize * 0.6}px; height: ${iconSize * 0.6}px; display: flex; align-items: center; justify-content: center; border-radius: 50%; z-index: 2; transform: rotate(${-direction}deg); border: 2px solid #0056b3;">
             ${line}
           </div>
-          <div style="
-            position: absolute;
-            top: 50%;
-            left: calc(100% - 3px);
-            transform: translate(-50%, -50%);
-            width: 0;
-            height: 0;
-            border-top: ${iconSize * 0.14}px solid transparent;
-            border-bottom: ${iconSize * 0.14}px solid transparent;
-            border-left: ${iconSize * 0.24}px solid #007bff;
-            z-index: 1;
-          "></div>
+          <div style="position: absolute; top: 50%; left: calc(100% - 3px); transform: translate(-50%, -50%); width: 0; height: 0; border-top: ${iconSize * 0.14}px solid transparent; border-bottom: ${iconSize * 0.14}px solid transparent; border-left: ${iconSize * 0.24}px solid #007bff; z-index: 1;"></div>
         </div>
       </div>
     `,
@@ -108,11 +68,7 @@ const tramIcon = (line: string, direction: number, vehicleId: string, iconSize: 
   return new L.DivIcon({
     className: 'leaflet-div-icon',
     html: `
-      <div class="relative group" style="
-        position: relative;
-        width: ${iconSize}px;
-        height: ${iconSize}px;
-      ">
+      <div class="relative group" style="position: relative; width: ${iconSize}px; height: ${iconSize}px;">
         <div class="absolute hidden group-hover:flex -top-10 left-1/2 transform -translate-x-1/2 flex-col items-center text-center">
           <div class="bg-white text-black p-3 rounded-lg shadow-lg border-2 border-gray-400 font-medium ">
             <span class="whitespace-nowrap text-xs"> ${vehicleId.slice(0,2)}<span class="text-base ps-[1px]">${vehicleId.slice(2)} </span> </span>
@@ -120,46 +76,11 @@ const tramIcon = (line: string, direction: number, vehicleId: string, iconSize: 
           <div class="w-2 h-2 bg-black rotate-45 -mt-1"></div>
         </div>
 
-        <div style="
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%) rotate(${direction}deg);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: ${iconSize}px;
-          height: ${iconSize}px;
-          opacity: .85;
-        ">
-          <div style="
-            background-color: #ff0000;
-            color: white;
-            font-weight: bold;
-            font-size: ${iconSize * 0.26}px;
-            width: ${iconSize * 0.6}px;
-            height: ${iconSize * 0.6}px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2;
-            transform: rotate(${-direction}deg);
-            border: 2px solid #cc0000; 
-          ">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(${direction}deg); display: flex; align-items: center; justify-content: center; width: ${iconSize}px; height: ${iconSize}px; opacity: .85;">
+          <div style="background-color: #ff0000; color: white; font-weight: bold; font-size: ${iconSize * 0.26}px; width: ${iconSize * 0.6}px; height: ${iconSize * 0.6}px; display: flex; align-items: center; justify-content: center; z-index: 2; transform: rotate(${-direction}deg); border: 2px solid #cc0000;">
             ${line}
           </div>
-          <div style="
-            position: absolute;
-            top: 50%;
-            left: calc(100% - 3px);
-            transform: translate(-50%, -50%);
-            width: 0;
-            height: 0;
-            border-top: ${iconSize * 0.14}px solid transparent;
-            border-bottom: ${iconSize * 0.14}px solid transparent;
-            border-left: ${iconSize * 0.24}px solid #ff0000;
-            z-index: 1;
-          "></div>
+          <div style="position: absolute; top: 50%; left: calc(100% - 3px); transform: translate(-50%, -50%); width: 0; height: 0; border-top: ${iconSize * 0.14}px solid transparent; border-bottom: ${iconSize * 0.14}px solid transparent; border-left: ${iconSize * 0.24}px solid #ff0000; z-index: 1;"></div>
         </div>
       </div>
     `,
@@ -188,26 +109,62 @@ const DynamicZoomHandler = ({ setZoom }: { setZoom: React.Dispatch<React.SetStat
 const MapPage: React.FC = () => {
   const position: [number, number] = [50.061417, 19.937778];
   const [zoom, setZoom] = useState(15);
+  const [selectedVehicle, setSelectedVehicle] = useState<{ tripId: string | null; type: string | null }>({
+    tripId: null,
+    type: null,
+  });
+
   const { realtimeData, loading, error } = useRealtimeData();
   const { stopData, loading: stopLoading, error: stopError } = useStopListWithLocationData();
+  const { shapesData, loading: shapesLoading, error: shapesError } = useShapesPointData(
+    selectedVehicle.tripId,
+    selectedVehicle.type
+  );
 
-  if (loading || stopLoading) return <div>Loading...</div>;
-  if (error || stopError) return <div>Error loading data</div>;
+  if (loading || stopLoading || shapesLoading) return <div>Loading...</div>;
+  if (error || stopError || shapesError) return <div>Error loading data</div>;
 
   const iconSize = zoom > 13 ? 50 : 40;
+
+  const handleVehicleClick = (tripId: string, type: string) => {
+    if (tripId && type) {
+      setSelectedVehicle({ tripId, type });
+    } else {
+      console.warn('Brak trip_id lub type');
+    }
+  };
+
+  const handleMapClick = () => {
+    setSelectedVehicle({ tripId: null, type: null });
+  };
+
+  const routeCoordinates: [number, number][] = selectedVehicle.tripId
+    ? shapesData ? shapesData.map((point) => [point.shape_pt_lat, point.shape_pt_lon] as [number, number]) : []
+    : [];
+
+  const MapClickHandler = () => {
+    useMapEvents({
+      click: handleMapClick,  
+    });
+    return null;
+  };
 
   return (
     <div style={{ height: '92vh' }}>
       <style>{styles}</style>
 
-      <MapContainer center={position} zoom={15} style={{ width: '100%', height: '100%' }}>
+      <MapContainer
+        center={position}
+        zoom={15}
+        style={{ width: '100%', height: '100%' }}
+      >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
-
         <DynamicZoomHandler setZoom={setZoom} />
-
+        <MapClickHandler /> 
+        
         {stopData.map((stop: StopsData) => (
           <CircleMarker
             key={stop.stop_id}
@@ -232,6 +189,9 @@ const MapPage: React.FC = () => {
                 ? busIcon(vehicle.route_short_name, vehicle.bearing, vehicle.vehicle_id, iconSize)
                 : tramIcon(vehicle.route_short_name, vehicle.bearing, vehicle.vehicle_id, iconSize)
             }
+            eventHandlers={{
+              click: () => handleVehicleClick(vehicle.trip_id, vehicle.type),
+            }}
           >
             <Popup>
               Linia:
@@ -261,10 +221,13 @@ const MapPage: React.FC = () => {
             </Popup>
           </Marker>
         ))}
+
+        {routeCoordinates.length > 0 && (
+          <Polyline positions={routeCoordinates} color="black" weight={3} />
+        )}
       </MapContainer>
     </div>
   );
 };
 
 export default MapPage;
-

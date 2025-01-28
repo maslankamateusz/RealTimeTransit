@@ -500,4 +500,15 @@ def add_stop_number_to_stop_name(stops_data, vehicle_type):
     
     return stops_data
 
+def get_shape_list_for_trip_id(gtfs_data, trip_id, vehicle_type):
+    if vehicle_type == "bus":
+        trips_data = gtfs_data['trips_a']
+        shapes_data = gtfs_data['shapes_a']
+    else:
+        trips_data = gtfs_data['trips_t']
+        shapes_data = gtfs_data['shapes_t']
 
+    shape_id = trips_data.loc[trip_id].shape_id
+    filtred_shapes_data = shapes_data[shapes_data['shape_id'] == shape_id]
+    shapes_list = filtred_shapes_data[['shape_pt_sequence', 'shape_pt_lat', 'shape_pt_lon']]
+    return shapes_list
