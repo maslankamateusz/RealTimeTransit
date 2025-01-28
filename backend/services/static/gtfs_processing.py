@@ -512,3 +512,26 @@ def get_shape_list_for_trip_id(gtfs_data, trip_id, vehicle_type):
     filtred_shapes_data = shapes_data[shapes_data['shape_id'] == shape_id]
     shapes_list = filtred_shapes_data[['shape_pt_sequence', 'shape_pt_lat', 'shape_pt_lon']]
     return shapes_list
+
+def get_stops_list_for_trip_with_delay(gtfs_data, vehicle_type, trip_id):
+    if vehicle_type == "bus":
+        stops = gtfs_data['stops_a']
+        stop_times = gtfs_data['stop_times_a']
+    else:
+        stops = gtfs_data['stops_t']
+        stop_times = gtfs_data['stop_times_t']
+
+    stop_times_filtred = stop_times.loc[trip_id]
+    if 'stop_id' not in stops.columns:
+        stops = stops.reset_index() 
+
+    stop_times_filtred.loc[:, 'stop_id'] = stop_times_filtred['stop_id'].astype(str) 
+    stops['stop_id'] = stops['stop_id'].astype(str)  
+    stop_times_filtred = stop_times_filtred.merge(stops[['stop_name', 'stop_id']], on='stop_id', how='left')
+
+    return stop_times_filtred[['stop_id', 'stop_name', 'departure_time']].values.tolist()
+
+
+
+
+
