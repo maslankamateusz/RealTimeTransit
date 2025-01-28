@@ -96,7 +96,7 @@ def get_routes_list(gtfs_data):
     return routes_list
 
 
-def get_stops_list(gtfs_data, route_number):
+def get_stops_list_for_route(gtfs_data, route_number):
     routes_list = get_routes_dict(gtfs_data)
     
     matching_routes = routes_list[routes_list['route_short_name'] == str(route_number)]
@@ -452,3 +452,52 @@ def get_routes_list_from_block_id(gtfs_data, vehicle_type, block_id):
         route_short_names_list.append(route_short_name)
 
     return route_short_names_list
+
+def get_stops_list(gtfs_data):
+    stops_data_a = gtfs_data['stops_a']
+    stops_data_t = gtfs_data['stops_t']
+    stops_list_a = stops_data_a['stop_name'].drop_duplicates().values.tolist()
+    stops_list_t = stops_data_t['stop_name'].drop_duplicates().values.tolist()
+
+    stops_list = stops_list_a + stops_list_t
+    sorted_list = list(sorted(set(stops_list)))
+    get_stops_list_with_location(gtfs_data)
+    return sorted_list
+
+def get_stops_list_with_location(gtfs_data):
+    stops_data_a = add_stop_number_to_stop_name(gtfs_data['stops_a'], "bus")
+    stops_data_t = add_stop_number_to_stop_name(gtfs_data['stops_t'], "tram")
+    if 'stop_id' in stops_data_a.index.names:
+        stops_data_a.reset_index(inplace=True)
+    if 'stop_id' in stops_data_t.index.names:
+        stops_data_t.reset_index(inplace=True)
+    stops_data_a['type'] = "bus"
+    stops_data_t['type'] = "tram"
+    stops_list_a = stops_data_a[['stop_id', 'stop_name', 'stop_lat', 'stop_lon', 'type']]
+    stops_list_t = stops_data_t[['stop_id', 'stop_name', 'stop_lat', 'stop_lon', 'type']]
+
+    stops_list = pd.concat([stops_list_a, stops_list_t], ignore_index=True)
+    return stops_list
+
+def add_stop_number_to_stop_name(stops_data, vehicle_type):
+    if vehicle_type == "bus":
+        number_index = -1 
+    else:
+        number_index = -2  
+    
+    def add_number(row):
+        try:
+            stop_number = int(row['stop_id'][number_index]) 
+            stop_number_str = str(stop_number).zfill(2) 
+            if row['stop_name'].endswith(f" ({stop_number_str})"):
+                return row['stop_name'] 
+            else:
+                return f"{row['stop_name']} ({stop_number_str})"
+        except (ValueError, IndexError):
+            return row['stop_name']  
+
+    stops_data['stop_name'] = stops_data.apply(add_number, axis=1)
+    
+    return stops_data
+
+

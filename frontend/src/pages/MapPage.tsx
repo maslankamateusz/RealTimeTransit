@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import useRealtimeData from '../hooks/useRealtimeData';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import useStopListWithLocationData from '../hooks/useStopListWithLocationData';
+import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -25,6 +26,15 @@ interface RealtimeVehicleData {
   shape_id: string;
   bearing: number;
   type: string;
+}
+
+interface StopsData {
+  stop_id: string;
+  stop_name: string;
+  stop_lat: number;
+  stop_lon: number;
+  type: string;
+
 }
 
 const busIcon = (line: string, direction: number, vehicleId: string, iconSize: number) => {
@@ -149,7 +159,6 @@ const tramIcon = (line: string, direction: number, vehicleId: string, iconSize: 
             border-bottom: ${iconSize * 0.14}px solid transparent;
             border-left: ${iconSize * 0.24}px solid #ff0000;
             z-index: 1;
-            
           "></div>
         </div>
       </div>
@@ -180,9 +189,10 @@ const MapPage: React.FC = () => {
   const position: [number, number] = [50.061417, 19.937778];
   const [zoom, setZoom] = useState(15);
   const { realtimeData, loading, error } = useRealtimeData();
+  const { stopData, loading: stopLoading, error: stopError } = useStopListWithLocationData();
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error loading data</div>;
+  if (loading || stopLoading) return <div>Loading...</div>;
+  if (error || stopError) return <div>Error loading data</div>;
 
   const iconSize = zoom > 13 ? 50 : 40;
 
@@ -198,8 +208,22 @@ const MapPage: React.FC = () => {
 
         <DynamicZoomHandler setZoom={setZoom} />
 
+        {stopData.map((stop: StopsData) => (
+          <CircleMarker
+            key={stop.stop_id}
+            center={[stop.stop_lat, stop.stop_lon]}
+            radius={2.5}
+            pathOptions={{
+              color: stop.type === 'bus' ? '#0056b3' : '#bb0000',
+              fillColor: stop.type === 'bus' ? '#0056b3' : '#bb0000',
+              fillOpacity: 1,
+            }}
+          >
+            <Popup><a href={`stop/${stop.stop_id}`}>{stop.stop_name}</a></Popup>
+          </CircleMarker>
+        ))}
+
         {realtimeData.map((vehicle: RealtimeVehicleData) => (
-            
           <Marker
             key={vehicle.vehicle_id}
             position={[vehicle.latitude, vehicle.longitude]}
@@ -209,27 +233,32 @@ const MapPage: React.FC = () => {
                 : tramIcon(vehicle.route_short_name, vehicle.bearing, vehicle.vehicle_id, iconSize)
             }
           >
-        <Popup>
-            Linia: 
-            <a
+            <Popup>
+              Linia:
+              <a
                 href={`/lines/${vehicle.route_short_name}`}
-                className='text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500'
-            >
+                className="text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500"
+              >
                 {vehicle.route_short_name}
-            </a>
-            <br />
-            Kierunek: 
-            <a className='text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500' href={`/stops/${vehicle.trip_headsign}`}>
+              </a>
+              <br />
+              Kierunek:
+              <a
+                className="text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500"
+                href={`/stops/${vehicle.trip_headsign}`}
+              >
                 {vehicle.trip_headsign}
-            </a>
-            <br />
-            Numer taborowy: 
-            <a className='text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500' href={`/vehicle/${vehicle.vehicle_id}`}>
-                <span className='text-xs'>{vehicle.vehicle_id.slice(0, 2)}</span>{vehicle.vehicle_id.slice(2)}
-            </a>
+              </a>
+              <br />
+              Numer taborowy:
+              <a
+                className="text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500"
+                href={`/vehicle/${vehicle.vehicle_id}`}
+              >
+                <span className="text-xs">{vehicle.vehicle_id.slice(0, 2)}</span>
+                {vehicle.vehicle_id.slice(2)}
+              </a>
             </Popup>
-
-
           </Marker>
         ))}
       </MapContainer>
@@ -238,3 +267,4 @@ const MapPage: React.FC = () => {
 };
 
 export default MapPage;
+
