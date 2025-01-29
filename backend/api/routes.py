@@ -198,10 +198,9 @@ async def get_stops_list_with_delay(
 @router.get("/api/stop/details")
 async def get_stop_details_edp(
     stop_name: str = Query(...),
-    service_id: str = Query(...),
 ):  
     data = get_gtfs_data()
-    stop_details = get_stop_details(data, stop_name, service_id)
+    stop_details = get_stop_details(data, stop_name)
 
     return stop_details
 

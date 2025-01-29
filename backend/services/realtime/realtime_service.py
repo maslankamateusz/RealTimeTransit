@@ -135,18 +135,23 @@ def prepare_realtime_data_for_database(gtfs_data: dict = Depends(get_gtfs_data))
         update_vehicles_status(session, formated_vehicles_list)
 
 
-def get_realtime_stop_details(gtfs_data, schedule_number):
-
+def get_realtime_stop_details(gtfs_data, schedule_number_list):
     vehicles_list = get_vehicle_with_route_name(gtfs_data)
-    founded_vehicle = {}
+    founded_vehicles = []
 
     for vehicle in vehicles_list:
-        if vehicle["schedule_number"] == schedule_number:
+        if vehicle["schedule_number"] in schedule_number_list:
+            vehicle_id = vehicle["vehicle_id"]
             trip_id = vehicle["trip_id"]
             stop_id = vehicle["stop_id"]
             vehicle_type = vehicle["type"]
             timestamp = vehicle["timestamp"]
             delay = get_stop_delay(gtfs_data, vehicle_type, trip_id, stop_id, timestamp)
-            founded_vehicle = {vehicle["vehicle_id"] : delay}
+            
+            founded_vehicles.append({
+                'vehicle_id': vehicle_id,
+                'delay': delay,
+                'schedule_number': vehicle["schedule_number"]
+            })
 
-    return founded_vehicle
+    return founded_vehicles
