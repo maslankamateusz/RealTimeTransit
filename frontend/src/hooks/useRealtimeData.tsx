@@ -31,7 +31,7 @@ const useRealtimeData = () => {
 
     const intervalId = setInterval(() => {
       fetchRealtimeData();
-    }, 15000);
+    }, 20000);
 
     return () => clearInterval(intervalId);
   }, []); 

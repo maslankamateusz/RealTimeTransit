@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import useRealtimeData from '../hooks/useRealtimeData';
 import useStopListWithLocationData from '../hooks/useStopListWithLocationData';
 import useShapesPointData from '../hooks/useShapesPointData';
-import useStopListForTrip from '../hooks/useStopListForTrip'; // Importujemy nasz nowy hook
+import useStopListForTrip from '../hooks/useStopListForTrip'; 
 import {
   MapContainer,
   TileLayer,
@@ -27,6 +27,7 @@ const styles = `
 interface RealtimeVehicleData {
   vehicle_id: string;
   route_short_name: string;
+  schedule_number: string;
   latitude: number;
   longitude: number;
   timestamp: number;
@@ -46,14 +47,6 @@ interface StopsData {
   stop_lon: number;
   type: string;
 }
-
-interface ShapePointData {
-  shape_pt_lat: number;
-  shape_pt_lon: number;
-  shape_pt_sequence: number;
-}
-
-type StopSchedule = [string, string, string];
 
 const busIcon = (line: string, direction: number, vehicleId: string, iconSize: number) => {
   direction = direction - 90;
@@ -238,24 +231,32 @@ const MapPage: React.FC = () => {
                   href={`/lines/${vehicle.route_short_name}`}
                   className="text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500"
                 >
-                  {vehicle.route_short_name}
+                  <span className='ms-1'>{vehicle.route_short_name}</span>
                 </a>
                 <br />
-                Kierunek:
+                Kierunek: 
                 <a
                   className="text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500"
                   href={`/stops/${vehicle.trip_headsign}`}
                 >
-                  {vehicle.trip_headsign}
+                  <span className='ms-1'>{vehicle.trip_headsign}</span>
                 </a>
                 <br />
-                Numer taborowy:
+                Numer taborowy: 
                 <a
                   className="text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500"
                   href={`/vehicle/${vehicle.vehicle_id}`}
                 >
-                  <span className="text-xs">{vehicle.vehicle_id.slice(0, 2)}</span>
+                  <span className="ms-1 text-xs">{vehicle.vehicle_id.slice(0, 2)}</span>
                   {vehicle.vehicle_id.slice(2)}
+                </a>
+                <br />
+                Brygada: 
+                <a
+                  className="text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500"
+                  href={`/schedule/${vehicle.schedule_number}`}
+                >
+                  <span className="ms-1">{vehicle.schedule_number}</span>
                 </a>
               </Popup>
             </Marker>
@@ -269,88 +270,78 @@ const MapPage: React.FC = () => {
 
           
       {selectedVehicle.tripId && (
-  <div className="w-[25%] overflow-y-scroll border-l border-gray-300 p-5">
-    <h3 className="font-medium text-xl">Szczegóły pojazdu</h3>
-    <div className="space-y-2 mt-3">
-      <p>
-        <strong>Trip ID:</strong> {selectedVehicle.tripId}
-      </p>
-      <p>
-        <strong>Stop ID:</strong> {selectedVehicle.stopId}
-      </p>
-      <p>
-        <strong>Timestamp:</strong> {selectedVehicle.timestamp}
-      </p>
+        <div className="w-[25%] overflow-y-scroll border-l border-gray-300 p-5">
+          <div className="space-y-2">
+            {stopListForTrip && stopListForTrip.length > 0 && (
+              <div className="mt-1">
+                <h4 className="text-xl font-semibold">Przystanki dla wybranej trasy:</h4>
+                <div className="overflow-x-auto mt-2">
+                  <table className="w-full border border-gray-300 shadow-md rounded-lg">
+                    <thead className="bg-gray-200 text-gray-700">
+                      <tr>
+                        <th className="border border-gray-400 px-4 py-2 text-left">Odjazd</th>
+                        <th className="border border-gray-400 px-4 py-2 text-left">Przystanek</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const currentStopIndex = stopListForTrip.findIndex(
+                          (stop) => stop.stopId === selectedVehicle.stopId
+                        );
 
-          {stopListForTrip && stopListForTrip.length > 0 && (
-            <div className="mt-4">
-              <h4 className="text-lg font-semibold">Przystanki dla wybranej trasy:</h4>
-              <div className="overflow-x-auto mt-2">
-                <table className="w-full border border-gray-300 shadow-md rounded-lg">
-                  <thead className="bg-gray-200 text-gray-700">
-                    <tr>
-                      <th className="border border-gray-400 px-4 py-2 text-left">Odjazd</th>
-                      <th className="border border-gray-400 px-4 py-2 text-left">Przystanek</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(() => {
-                      const currentStopIndex = stopListForTrip.findIndex(
-                        (stop) => stop.stopId === selectedVehicle.stopId
-                      );
+                        const stopTime = stopListForTrip.find(
+                          (stop) => stop.stopId === selectedVehicle.stopId
+                        )?.time;
 
-                      const stopTime = stopListForTrip.find(
-                        (stop) => stop.stopId === selectedVehicle.stopId
-                      )?.time;
-                      if (stopTime) {
-                        const stopDate = new Date();
-                        const stopTimeParts = stopTime.split(":");
-                        stopDate.setHours(parseInt(stopTimeParts[0]), parseInt(stopTimeParts[1]), parseInt(stopTimeParts[2]), 0);
+                        if (stopTime) {
+                          const stopDate = new Date();
+                          const stopTimeParts = stopTime.split(":");
+                          stopDate.setHours(parseInt(stopTimeParts[0]), parseInt(stopTimeParts[1]), parseInt(stopTimeParts[2]), 0);
 
-                        const vehicleTimestampDate = selectedVehicle.timestamp ? new Date(selectedVehicle.timestamp * 1000) : new Date();
-                        const delayInMillis = vehicleTimestampDate.getTime() - stopDate.getTime();
-                        const delayInMinutes = Math.round(delayInMillis / (1000 * 60)); 
+                          const vehicleTimestampDate = selectedVehicle.timestamp
+                            ? new Date(selectedVehicle.timestamp * 1000)
+                            : new Date();
+                          const delayInMillis = vehicleTimestampDate.getTime() - stopDate.getTime();
+                          const delayInMinutes = Math.round(delayInMillis / (1000 * 60)); 
 
-                        return stopListForTrip.map((stop, index) => {
-                          const formattedTime = stopDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                          return (
-                            <tr
-                              key={stop.stopId}
-                              className={`border border-gray-300 ${
-                                index < currentStopIndex
-                                  ? "bg-gray-50 text-gray-400"
-                                  : index === currentStopIndex
-                                  ? "bg-amber-100 font-medium"
-                                  : index % 2 === 0
-                                  ? "bg-white"
-                                  : "bg-gray-50"
-                              }`}
-                            >
-                              <td className="px-4 py-2 relative">
-                                {formattedTime}
-                                {index >= currentStopIndex && (
-                                  <span className="absolute top-0 right-0 text-red-500 text-xs font-bold">
-                                    {delayInMinutes > 0 ? `+${delayInMinutes} min` : ''}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-4 py-2">{stop.stopName}</td>
-                            </tr>
-                          );
-                        });
-                      }
-                    })()}
-                  </tbody>
-                </table>
+                          return stopListForTrip.map((stop, index) => {
+                            return (
+                              <tr
+                                key={stop.stopId}
+                                className={`border border-gray-300 ${
+                                  index < currentStopIndex
+                                    ? "bg-gray-50 text-gray-400"
+                                    : index === currentStopIndex
+                                    ? "bg-amber-100 font-medium"
+                                    : index % 2 === 0
+                                    ? "bg-white"
+                                    : "bg-gray-50"
+                                }`}
+                              >
+                                <td className="px-4 py-2 relative">
+                                  {stop.time.slice(0, 5)}
+                                  {currentStopIndex > 0 && index > 0 && index >= currentStopIndex && (
+                                    <span className="absolute top-0 right-0 text-red-500 text-xs font-bold">
+                                      {delayInMinutes !== 0 
+                                        ? `${delayInMinutes > 0 ? "+" : ""}${delayInMinutes} min` 
+                                        : "OK"}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-2 hover:underline"><a href={`stops/${stop.stopId}`}>{stop.stopName}</a></td>
+                              </tr>
+                            );
+                          });
+                        }
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-    )}
-
-
+      )}
     </div>
   );
 };

@@ -6,8 +6,6 @@ interface StopSchedule {
   time: string;        
 }
 
-type Schedule = StopSchedule[];
-
 const useStopListForTrip = (tripId: string | null, type: string | null) => {
     const [stopListForTrip, setStopListForTrip] = useState<StopSchedule[] | null>(null);
     const [loading, setLoading] = useState(true);
@@ -27,7 +25,6 @@ const useStopListForTrip = (tripId: string | null, type: string | null) => {
           const response = await fetch(`http://127.0.0.1:8000/api/trip/stops/delay?trip_id=${tripId}&vehicle_type=${type}`);
           const data = await response.json();
   
-          // Mapowanie danych na obiekty
           const mappedData: StopSchedule[] = data.map((stop: any) => ({
             stopId: stop[0],
             stopName: stop[1],

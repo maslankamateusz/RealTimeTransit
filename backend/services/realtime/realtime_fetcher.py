@@ -3,9 +3,9 @@ import requests
 def download_gtfs_realtime_file():
 
     url_a = 'https://gtfs.ztp.krakow.pl/VehiclePositions_A.pb'
-    local_filename_a = 'vehicle_positions_a.pb'
+    local_filename_a = 'services/realtime/realtime_data/vehicle_positions_a.pb'
     url_t = 'https://gtfs.ztp.krakow.pl/VehiclePositions_T.pb'
-    local_filename_t = 'vehicle_positions_t.pb'
+    local_filename_t = 'services/realtime/realtime_data/vehicle_positions_t.pb'
 
     response_a = requests.get(url_a, stream=True)
     if response_a.status_code == 200:

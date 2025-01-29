@@ -432,12 +432,13 @@ def get_timetable_data(gtfs_data, route_number, direction, stop_id, service_id):
     return filtred_df.to_dict(orient='records')
 
 def get_schedule_number_from_block_id(gtfs_data, block_id, service_id, vehicle_type):
-    if vehicle_type == "bus":
-        schedule_data = gtfs_data['schedule_num_a']
-    else:
-        schedule_data = gtfs_data['schedule_num_t']
-    schedule_number = schedule_data[(schedule_data['block_id'] == block_id) & (schedule_data['service_id'] == service_id)]['schedule_number'].values[0]
-    return schedule_number
+    schedule_data = gtfs_data['schedule_num_a'] if vehicle_type == "bus" else gtfs_data['schedule_num_t']
+    filtered_data = schedule_data[(schedule_data['block_id'] == block_id) & (schedule_data['service_id'] == service_id)]
+    if not filtered_data.empty:
+        return filtered_data.iloc[0]['schedule_number'] 
+
+    return None
+
 
 def get_routes_list_from_block_id(gtfs_data, vehicle_type, block_id):
     if vehicle_type == "bus":
@@ -520,7 +521,6 @@ def get_stops_list_for_trip_with_delay(gtfs_data, vehicle_type, trip_id):
     else:
         stops = gtfs_data['stops_t']
         stop_times = gtfs_data['stop_times_t']
-
     stop_times_filtred = stop_times.loc[trip_id]
     if 'stop_id' not in stops.columns:
         stops = stops.reset_index() 
