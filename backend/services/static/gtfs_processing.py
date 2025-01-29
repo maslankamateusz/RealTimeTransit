@@ -4,7 +4,7 @@ from collections import Counter
 from operator import itemgetter
 from ...database.crud import get_vehicle_ids_with_timestamps_by_schedule_number
 from ...database.session import SessionLocal
-
+from datetime import datetime
 
 def get_bus_routes_list(gtfs_data):
     if 'route_id' in gtfs_data['routes_a'].index.names:
@@ -457,12 +457,12 @@ def get_routes_list_from_block_id(gtfs_data, vehicle_type, block_id):
 def get_stops_list(gtfs_data):
     stops_data_a = gtfs_data['stops_a']
     stops_data_t = gtfs_data['stops_t']
+
     stops_list_a = stops_data_a['stop_name'].drop_duplicates().values.tolist()
     stops_list_t = stops_data_t['stop_name'].drop_duplicates().values.tolist()
-
     stops_list = stops_list_a + stops_list_t
     sorted_list = list(sorted(set(stops_list)))
-    get_stops_list_with_location(gtfs_data)
+
     return sorted_list
 
 def get_stops_list_with_location(gtfs_data):
@@ -532,6 +532,95 @@ def get_stops_list_for_trip_with_delay(gtfs_data, vehicle_type, trip_id):
     return stop_times_filtred[['stop_id', 'stop_name', 'departure_time']].values.tolist()
 
 
+def get_stop_details(gtfs_data, stop_name, service_id):
+    stops_data_a = gtfs_data['stops_a']
+    stops_data_t = gtfs_data['stops_t']
+    stop_times_a = gtfs_data['stop_times_a']
+    stop_times_t = gtfs_data['stop_times_t']
+
+    stop_ids_a = stops_data_a[stops_data_a['stop_name'] == stop_name]['stop_id'].values.tolist()
+    stop_ids_t = stops_data_t[stops_data_t['stop_name'] == stop_name]['stop_id'].values.tolist()
+
+    schedule_dict = {}
+
+    def process_stop_times(stop_ids, stop_times, transport_type):
+        nonlocal schedule_dict
+        stop_number = None
+        
+        for stop_id in stop_ids:
+            filtered_data = stop_times[stop_times['stop_id'] == stop_id]
+            for index, row in filtered_data.iterrows():
+                trip_id_parts = index.split('_')
+                
+                if trip_id_parts[5] == service_id:
+                    if transport_type == "bus":
+                        number_index = -1
+                    else:
+                        number_index = -2
+
+                    try:
+                        stop_number = int(stop_id[number_index])
+                    except (ValueError, IndexError):
+                        stop_number = None  
+                    
+                    departure_time = row['departure_time']
+                    departure_time_without_seconds = ':'.join(departure_time.split(':')[:2])
+                    
+                    schedule_number = get_schedule_number_from_trip_id(gtfs_data, index, transport_type)
+                    
+                    if schedule_number not in schedule_dict:
+                        schedule_dict[schedule_number] = {
+                            'stop_number': stop_number,  
+                            'departure_times': []
+                        }
+                    
+                    schedule_dict[schedule_number]['departure_times'].append(departure_time_without_seconds)
+
+    process_stop_times(stop_ids_a, stop_times_a, "bus")
+    process_stop_times(stop_ids_t, stop_times_t, "tram")
+
+    return schedule_dict
 
 
+def get_schedule_number_from_trip_id(gtfs_data, trip_id, vehicle_type):
+    parts = trip_id.split("_")
+    block_id = f"block_{parts[1]}".strip()
+    service_id = f"service_{parts[5]}".strip()
+    if vehicle_type == "bus":
+        schedule_numbers = gtfs_data['schedule_num_a']
+    else:
+        schedule_numbers = gtfs_data['schedule_num_t']
+    schedule_number = schedule_numbers[
+        (schedule_numbers['block_id'] == block_id) &
+        (schedule_numbers['service_id'] == service_id)
+    ]['schedule_number'].values[0]
+    return schedule_number
+
+
+
+def get_stop_delay(gtfs_data, vehicle_type, trip_id, stop_id, timestamp):
+    stop_list = get_stops_list_for_trip_with_delay(gtfs_data, vehicle_type, trip_id)
+
+    for i, stop in enumerate(stop_list):
+        current_stop_id = stop[0]
+        departure_time = stop[2]
+
+        if current_stop_id == stop_id:
+            if i == 0: 
+                return 0 
+            today_date = datetime.today().strftime('%Y-%m-%d')
+
+            try:
+                departure_time_obj = datetime.strptime(f"{today_date} {departure_time}", '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                print(f"Invalid departure time format: {departure_time}")
+                continue  
+
+            departure_timestamp = int(departure_time_obj.timestamp())
+            delay_seconds = timestamp - departure_timestamp
+            delay_minutes = round(delay_seconds / 60)
+
+            return delay_minutes  
+
+    return None 
 

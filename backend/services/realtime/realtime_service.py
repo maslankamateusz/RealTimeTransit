@@ -6,7 +6,7 @@ from ...database.crud import update_vehicles_status
 from fastapi import Depends
 from fastapi import Request
 from ..static.gtfs_data_loader import gtfs_data_instance
-from ..static.gtfs_processing import get_routes_list_from_block_id, get_schedule_number_from_block_id
+from ..static.gtfs_processing import get_routes_list_from_block_id, get_schedule_number_from_block_id, get_stop_details, get_schedule_number_from_trip_id, get_stop_delay
 
 def get_gtfs_data(request: Request = None):
     gtfs_data = gtfs_data_instance.get_data()
@@ -55,6 +55,7 @@ def get_vehicle_with_route_name(gtfs_data):
                 'vehicle_id': vehicle['vehicle']['license_plate'],
                 'schedule_number': schedule_number,
                 'route_short_name': route_short_name_a,
+                'block_id' : block_id_a,
                 'latitude': vehicle['position']['latitude'],
                 'longitude': vehicle['position']['longitude'],
                 'timestamp': vehicle['timestamp'],
@@ -83,6 +84,7 @@ def get_vehicle_with_route_name(gtfs_data):
                 'vehicle_id': vehicle['vehicle']['license_plate'],
                 'schedule_number': schedule_number,
                 'route_short_name': route_short_name_t,
+                'block_id' : block_id_t,
                 'latitude': vehicle['position']['latitude'],
                 'longitude': vehicle['position']['longitude'],
                 'timestamp': vehicle['timestamp'],
@@ -99,19 +101,7 @@ def get_vehicle_with_route_name(gtfs_data):
     return vehicle_list
  
 
-def get_schedule_number_from_trip_id(gtfs_data, trip_id, vehicle_type):
-    parts = trip_id.split("_")
-    block_id = f"block_{parts[1]}".strip()
-    service_id = f"service_{parts[5]}".strip()
-    if vehicle_type == "bus":
-        schedule_numbers = gtfs_data['schedule_num_a']
-    else:
-        schedule_numbers = gtfs_data['schedule_num_t']
-    schedule_number = schedule_numbers[
-        (schedule_numbers['block_id'] == block_id) &
-        (schedule_numbers['service_id'] == service_id)
-    ]['schedule_number'].values[0]
-    return schedule_number
+
 
 def get_routes_list(gtfs_data, trip_id, vehicle_type):
     parts = trip_id.split("_")
@@ -145,4 +135,18 @@ def prepare_realtime_data_for_database(gtfs_data: dict = Depends(get_gtfs_data))
         update_vehicles_status(session, formated_vehicles_list)
 
 
+def get_realtime_stop_details(gtfs_data, schedule_number):
 
+    vehicles_list = get_vehicle_with_route_name(gtfs_data)
+    founded_vehicle = {}
+
+    for vehicle in vehicles_list:
+        if vehicle["schedule_number"] == schedule_number:
+            trip_id = vehicle["trip_id"]
+            stop_id = vehicle["stop_id"]
+            vehicle_type = vehicle["type"]
+            timestamp = vehicle["timestamp"]
+            delay = get_stop_delay(gtfs_data, vehicle_type, trip_id, stop_id, timestamp)
+            founded_vehicle = {vehicle["vehicle_id"] : delay}
+
+    return founded_vehicle
