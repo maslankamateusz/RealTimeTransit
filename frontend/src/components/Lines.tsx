@@ -37,7 +37,6 @@ const Lines: React.FC = () => {
                 >
                     {lines.map((line) => {
                         const lineNumber = Object.keys(line)[0];
-                        const lineValue = Object.values(line)[0];
                         const isNightLine = (String(lineNumber).startsWith('6') || String(lineNumber).startsWith('9')) && String(lineNumber).length > 1;
                         const isSubstituteLine = String(lineNumber).startsWith('7') && String(lineNumber).length > 1;
 
@@ -56,9 +55,7 @@ const Lines: React.FC = () => {
                                     height: '36px',
                                 }}
                                 onClick={() =>
-                                    navigate(`/lines/${lineNumber}`, {
-                                        state: { lineValue },
-                                    })
+                                    navigate(`/lines/${lineNumber}`)
                                 }
                             >
                                 {lineNumber}

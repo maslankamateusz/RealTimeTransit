@@ -25,6 +25,7 @@ def load_gtfs_data():
     stop_times_df_a = pd.read_csv(os.path.join(bus_path, 'stop_times.txt'))
     calendar_df_a = pd.read_csv(os.path.join(bus_path, 'calendar.txt'))
     schedule_numbers_df_a = pd.read_csv(os.path.join(bus_path, 'schedule_numbers_a.txt'))
+    shapes_df_a = pd.read_csv(os.path.join(bus_path, 'shapes.txt'))
 
     stops_df_t = pd.read_csv(os.path.join(tram_path, 'stops.txt'))
     routes_df_t = pd.read_csv(os.path.join(tram_path, 'routes.txt'))
@@ -32,6 +33,8 @@ def load_gtfs_data():
     stop_times_df_t = pd.read_csv(os.path.join(tram_path, 'stop_times.txt'))
     calendar_df_t = pd.read_csv(os.path.join(tram_path, 'calendar.txt'))
     schedule_numbers_df_t = pd.read_csv(os.path.join(tram_path, 'schedule_numbers_t.txt'))
+    shapes_df_t = pd.read_csv(os.path.join(tram_path, 'shapes.txt'))
+
 
 
     try:
@@ -64,12 +67,14 @@ def load_gtfs_data():
         'stop_times_a': stop_times_df_a,
         'calendar_a': calendar_df_a,
         'schedule_num_a': schedule_numbers_df_a,
+        'shapes_a': shapes_df_a,
         'stops_t': stops_df_t,
         'routes_t': routes_df_t,
         'trips_t': trips_df_t,  
         'stop_times_t': stop_times_df_t,
         'calendar_t': calendar_df_t,
-        'schedule_num_t': schedule_numbers_df_t
+        'schedule_num_t': schedule_numbers_df_t,
+        'shapes_t': shapes_df_t
     }
 
     gtfs_data_instance.load_data(gtfs_data)

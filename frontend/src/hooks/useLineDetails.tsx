@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const useLineDetails = (lineNumber: string, lineValue: string, service_id: string | null) => {
+const useLineDetails = (lineNumber: string, service_id: string | null) => {
     const [lineDetails, setLineDetails] = useState<any>(null);
     const [serviceDetails, setServiceDetails] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ const useLineDetails = (lineNumber: string, lineValue: string, service_id: strin
             try {
                 setLoading(true);
                 const response = await fetch(
-                    `http://127.0.0.1:8000/api/routes/schedule/plan?route_id=${lineValue}&vehicle_type=${vehicle_type}`
+                    `http://127.0.0.1:8000/api/routes/schedule/plan?route_name=${lineNumber}`
                 );
                 if (!response.ok) {
                     throw new Error('Failed to fetch line details');
@@ -74,7 +74,7 @@ const useLineDetails = (lineNumber: string, lineValue: string, service_id: strin
         };
 
         fetchLineDetails();
-    }, [lineValue, vehicle_type]);
+    }, [ vehicle_type]);
 
     useEffect(() => {
         if (fetchedData && service_id) {

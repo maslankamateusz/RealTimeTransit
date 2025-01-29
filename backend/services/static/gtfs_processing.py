@@ -96,7 +96,7 @@ def get_routes_list(gtfs_data):
     return routes_list
 
 
-def get_stops_list(gtfs_data, route_number):
+def get_stops_list_for_route(gtfs_data, route_number):
     routes_list = get_routes_dict(gtfs_data)
     
     matching_routes = routes_list[routes_list['route_short_name'] == str(route_number)]
@@ -285,20 +285,27 @@ def adjust_end_time(end_time):
 
     return f"{hours:02}:{minutes:02}"
 
-def get_schedule_data(gtfs_data, route_id, vehicle_type='bus'):
+def get_schedule_data(gtfs_data, route_name):
     days_of_week = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-    if vehicle_type == 'bus':
-        trips_data = gtfs_data['trips_a']
-        stop_times_data = gtfs_data['stop_times_a']
-        calendar_data = gtfs_data['calendar_a']
-    elif vehicle_type == 'tram':
+
+    if len(route_name) < 3:
+        vehicle_type = 'tram'
+        routes_data = gtfs_data['routes_t']
         trips_data = gtfs_data['trips_t']
         stop_times_data = gtfs_data['stop_times_t']
         calendar_data = gtfs_data['calendar_t']
     else:
-        raise ValueError("Invalid vehicle type. Must be 'bus' or 'tram'.")
+        vehicle_type = 'bus'
+        routes_data = gtfs_data['routes_a']
+        trips_data = gtfs_data['trips_a']
+        stop_times_data = gtfs_data['stop_times_a']
+        calendar_data = gtfs_data['calendar_a']
+
+    if 'route_id' in routes_data.index.names:
+        routes_data.reset_index(inplace=True)
+    route_id = routes_data[routes_data['route_short_name'] == route_name]['route_id'].values[0]
  
-    filtered_data = trips_data.loc[(trips_data['route_id'] == route_id) ]
+    filtered_data = trips_data.loc[(trips_data['route_id'] == route_id)]
     if 'trip_id' in filtered_data.index.names:
         filtered_data.reset_index(inplace=True)
     
@@ -425,12 +432,13 @@ def get_timetable_data(gtfs_data, route_number, direction, stop_id, service_id):
     return filtred_df.to_dict(orient='records')
 
 def get_schedule_number_from_block_id(gtfs_data, block_id, service_id, vehicle_type):
-    if vehicle_type == "bus":
-        schedule_data = gtfs_data['schedule_num_a']
-    else:
-        schedule_data = gtfs_data['schedule_num_t']
-    schedule_number = schedule_data[(schedule_data['block_id'] == block_id) & (schedule_data['service_id'] == service_id)]['schedule_number'].values[0]
-    return schedule_number
+    schedule_data = gtfs_data['schedule_num_a'] if vehicle_type == "bus" else gtfs_data['schedule_num_t']
+    filtered_data = schedule_data[(schedule_data['block_id'] == block_id) & (schedule_data['service_id'] == service_id)]
+    if not filtered_data.empty:
+        return filtered_data.iloc[0]['schedule_number'] 
+
+    return None
+
 
 def get_routes_list_from_block_id(gtfs_data, vehicle_type, block_id):
     if vehicle_type == "bus":
@@ -445,3 +453,85 @@ def get_routes_list_from_block_id(gtfs_data, vehicle_type, block_id):
         route_short_names_list.append(route_short_name)
 
     return route_short_names_list
+
+def get_stops_list(gtfs_data):
+    stops_data_a = gtfs_data['stops_a']
+    stops_data_t = gtfs_data['stops_t']
+    stops_list_a = stops_data_a['stop_name'].drop_duplicates().values.tolist()
+    stops_list_t = stops_data_t['stop_name'].drop_duplicates().values.tolist()
+
+    stops_list = stops_list_a + stops_list_t
+    sorted_list = list(sorted(set(stops_list)))
+    get_stops_list_with_location(gtfs_data)
+    return sorted_list
+
+def get_stops_list_with_location(gtfs_data):
+    stops_data_a = add_stop_number_to_stop_name(gtfs_data['stops_a'], "bus")
+    stops_data_t = add_stop_number_to_stop_name(gtfs_data['stops_t'], "tram")
+    if 'stop_id' in stops_data_a.index.names:
+        stops_data_a.reset_index(inplace=True)
+    if 'stop_id' in stops_data_t.index.names:
+        stops_data_t.reset_index(inplace=True)
+    stops_data_a['type'] = "bus"
+    stops_data_t['type'] = "tram"
+    stops_list_a = stops_data_a[['stop_id', 'stop_name', 'stop_lat', 'stop_lon', 'type']]
+    stops_list_t = stops_data_t[['stop_id', 'stop_name', 'stop_lat', 'stop_lon', 'type']]
+
+    stops_list = pd.concat([stops_list_a, stops_list_t], ignore_index=True)
+    return stops_list
+
+def add_stop_number_to_stop_name(stops_data, vehicle_type):
+    if vehicle_type == "bus":
+        number_index = -1 
+    else:
+        number_index = -2  
+    
+    def add_number(row):
+        try:
+            stop_number = int(row['stop_id'][number_index]) 
+            stop_number_str = str(stop_number).zfill(2) 
+            if row['stop_name'].endswith(f" ({stop_number_str})"):
+                return row['stop_name'] 
+            else:
+                return f"{row['stop_name']} ({stop_number_str})"
+        except (ValueError, IndexError):
+            return row['stop_name']  
+
+    stops_data['stop_name'] = stops_data.apply(add_number, axis=1)
+    
+    return stops_data
+
+def get_shape_list_for_trip_id(gtfs_data, trip_id, vehicle_type):
+    if vehicle_type == "bus":
+        trips_data = gtfs_data['trips_a']
+        shapes_data = gtfs_data['shapes_a']
+    else:
+        trips_data = gtfs_data['trips_t']
+        shapes_data = gtfs_data['shapes_t']
+
+    shape_id = trips_data.loc[trip_id].shape_id
+    filtred_shapes_data = shapes_data[shapes_data['shape_id'] == shape_id]
+    shapes_list = filtred_shapes_data[['shape_pt_sequence', 'shape_pt_lat', 'shape_pt_lon']]
+    return shapes_list
+
+def get_stops_list_for_trip_with_delay(gtfs_data, vehicle_type, trip_id):
+    if vehicle_type == "bus":
+        stops = gtfs_data['stops_a']
+        stop_times = gtfs_data['stop_times_a']
+    else:
+        stops = gtfs_data['stops_t']
+        stop_times = gtfs_data['stop_times_t']
+    stop_times_filtred = stop_times.loc[trip_id]
+    if 'stop_id' not in stops.columns:
+        stops = stops.reset_index() 
+
+    stop_times_filtred.loc[:, 'stop_id'] = stop_times_filtred['stop_id'].astype(str) 
+    stops['stop_id'] = stops['stop_id'].astype(str)  
+    stop_times_filtred = stop_times_filtred.merge(stops[['stop_name', 'stop_id']], on='stop_id', how='left')
+
+    return stop_times_filtred[['stop_id', 'stop_name', 'departure_time']].values.tolist()
+
+
+
+
+

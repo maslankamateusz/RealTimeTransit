@@ -6,7 +6,7 @@ from ...database.crud import update_vehicles_status
 from fastapi import Depends
 from fastapi import Request
 from ..static.gtfs_data_loader import gtfs_data_instance
-from ..static.gtfs_processing import get_routes_list_from_block_id
+from ..static.gtfs_processing import get_routes_list_from_block_id, get_schedule_number_from_block_id
 
 def get_gtfs_data(request: Request = None):
     gtfs_data = gtfs_data_instance.get_data()
@@ -16,8 +16,8 @@ def get_vehicle_realtime_raw_data() -> List[Dict]:
     try:
         download_gtfs_realtime_file()
         
-        vehicle_positions_a = parse_vehicle_positions('vehicle_positions_a.pb')
-        vehicle_positions_t = parse_vehicle_positions('vehicle_positions_t.pb')
+        vehicle_positions_a = parse_vehicle_positions('services/realtime/realtime_data/vehicle_positions_a.pb')
+        vehicle_positions_t = parse_vehicle_positions('services/realtime/realtime_data/vehicle_positions_t.pb')
         
         return vehicle_positions_a, vehicle_positions_t
     except Exception as e:
@@ -27,7 +27,6 @@ def get_vehicle_realtime_raw_data() -> List[Dict]:
 
 def get_vehicle_with_route_name(gtfs_data):
     vehicles_a, vehicles_t = get_vehicle_realtime_raw_data()
-
 
     if 'trip_id' not in gtfs_data['trips_a'].index.names:
         gtfs_data['trips_a'].set_index('trip_id', inplace=True)
@@ -42,15 +41,19 @@ def get_vehicle_with_route_name(gtfs_data):
     for vehicle in vehicles_a:
         trip_id_a = vehicle['trip']['trip_id']
 
-
         if trip_id_a in gtfs_data['trips_a'].index:
             route_id_a = gtfs_data['trips_a'].loc[trip_id_a]['route_id']
             route_short_name_a = gtfs_data['routes_a'].loc[route_id_a]['route_short_name']
             trip_headsign_a = gtfs_data['trips_a'].loc[str(trip_id_a)]['trip_headsign']
             shape_id_a = gtfs_data['trips_a'].loc[str(trip_id_a)]['shape_id']
+            block_id_a = gtfs_data['trips_a'].loc[str(trip_id_a)]['block_id']
+            service_id_a = gtfs_data['trips_a'].loc[str(trip_id_a)]['service_id']
+            schedule_number = get_schedule_number_from_block_id(gtfs_data, block_id_a, service_id_a, "bus")
 
+            
             vehicle_a = {
                 'vehicle_id': vehicle['vehicle']['license_plate'],
+                'schedule_number': schedule_number,
                 'route_short_name': route_short_name_a,
                 'latitude': vehicle['position']['latitude'],
                 'longitude': vehicle['position']['longitude'],
@@ -73,8 +76,12 @@ def get_vehicle_with_route_name(gtfs_data):
             route_short_name_t = gtfs_data['routes_t'].loc[route_id_t]['route_short_name']
             trip_headsign_t = gtfs_data['trips_t'].loc[str(trip_id_t)]['trip_headsign']
             shape_id_t = gtfs_data['trips_t'].loc[str(trip_id_t)]['shape_id']
+            block_id_t = gtfs_data['trips_t'].loc[str(trip_id_t)]['block_id']
+            service_id_t = gtfs_data['trips_t'].loc[str(trip_id_t)]['service_id']
+            schedule_number = get_schedule_number_from_block_id(gtfs_data, block_id_t, service_id_t, "tram")
             vehicle_t = {
                 'vehicle_id': vehicle['vehicle']['license_plate'],
+                'schedule_number': schedule_number,
                 'route_short_name': route_short_name_t,
                 'latitude': vehicle['position']['latitude'],
                 'longitude': vehicle['position']['longitude'],
