@@ -1,4 +1,4 @@
-import useStopDetails from "../hooks/useStopDetails";
+import useStopDetails from "../hooks/useStopList";
 
 interface TimetableSectionProps {
     lineNumber: string | undefined;

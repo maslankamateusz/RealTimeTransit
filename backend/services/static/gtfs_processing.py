@@ -5,7 +5,6 @@ from operator import itemgetter
 from ...database.crud import get_vehicle_ids_with_timestamps_by_schedule_number
 from ...database.session import SessionLocal
 
-
 def get_bus_routes_list(gtfs_data):
     if 'route_id' in gtfs_data['routes_a'].index.names:
         gtfs_data['routes_a'].reset_index(inplace=True)
@@ -337,7 +336,7 @@ def get_schedule_data(gtfs_data, route_name):
         service_day = calendar_data[calendar_data['service_id'] == service_id].copy()
         days_with_service = service_day[days_of_week].loc[:, service_day[days_of_week].iloc[0] == 1].columns.tolist()
         
-        today = datetime.datetime.today()
+        today = datetime.today()
         day_of_week = today.strftime('%A').lower()
 
         if day_of_week in days_with_service:
@@ -457,17 +456,19 @@ def get_routes_list_from_block_id(gtfs_data, vehicle_type, block_id):
 def get_stops_list(gtfs_data):
     stops_data_a = gtfs_data['stops_a']
     stops_data_t = gtfs_data['stops_t']
+
     stops_list_a = stops_data_a['stop_name'].drop_duplicates().values.tolist()
     stops_list_t = stops_data_t['stop_name'].drop_duplicates().values.tolist()
-
     stops_list = stops_list_a + stops_list_t
     sorted_list = list(sorted(set(stops_list)))
-    get_stops_list_with_location(gtfs_data)
+
     return sorted_list
 
 def get_stops_list_with_location(gtfs_data):
-    stops_data_a = add_stop_number_to_stop_name(gtfs_data['stops_a'], "bus")
-    stops_data_t = add_stop_number_to_stop_name(gtfs_data['stops_t'], "tram")
+    stops_data_a = gtfs_data['stops_a'].copy()
+    stops_data_t = gtfs_data['stops_t'].copy()
+    stops_data_a = add_stop_number_to_stop_name(stops_data_a, "bus")
+    stops_data_t = add_stop_number_to_stop_name(stops_data_t, "tram")
     if 'stop_id' in stops_data_a.index.names:
         stops_data_a.reset_index(inplace=True)
     if 'stop_id' in stops_data_t.index.names:
@@ -531,7 +532,158 @@ def get_stops_list_for_trip_with_delay(gtfs_data, vehicle_type, trip_id):
 
     return stop_times_filtred[['stop_id', 'stop_name', 'departure_time']].values.tolist()
 
+from datetime import datetime, timedelta
+
+def get_today_service_id(gtfs_data):
+    calendar_data = gtfs_data['calendar_a']
+    today = datetime.today()
+    weekday = today.strftime('%A').lower()
+    active_services = calendar_data[(calendar_data[weekday] == 1)]
+
+    return active_services['service_id'].values[0][-1]
+
+def get_stop_details(gtfs_data, stop_name):
+    service_id = get_today_service_id(gtfs_data)
+    stops_data_a = gtfs_data['stops_a']
+    stops_data_t = gtfs_data['stops_t']
+    stop_times_a = gtfs_data['stop_times_a']
+    stop_times_t = gtfs_data['stop_times_t']
+    trips_a = gtfs_data['trips_a']
+    trips_t = gtfs_data['trips_t']
+
+
+    if 'trip_id' not in stop_times_a.index.names:
+        stop_times_a = stop_times_a.set_index('trip_id')
+    if 'trip_id' not in stop_times_t.index.names:
+        stop_times_t = stop_times_t.set_index('trip_id')
+
+    stop_ids_a = stops_data_a[stops_data_a['stop_name'] == stop_name]['stop_id'].values.tolist()
+    stop_ids_t = stops_data_t[stops_data_t['stop_name'] == stop_name]['stop_id'].values.tolist()
+
+    depature_list = []
+    schedule_number_list = []
+
+    def process_stop_times(stop_ids, stop_times, transport_type):
+        
+        stop_number = None
+
+        now = datetime.now()
+        min_time = now - timedelta(minutes=20)  
+
+        for stop_id in stop_ids:
+            filtered_data = stop_times[stop_times['stop_id'] == stop_id]
+            for index, row in filtered_data.iterrows():
+                trip_id_parts = index.split('_')
+
+                if trip_id_parts[5] == service_id:
+                    if transport_type == "bus":
+                        number_index = -1
+                        trip_data = trips_a
+                    else:
+                        number_index = -2
+                        trip_data = trips_t
+
+                    try:
+                        stop_number = int(stop_id[number_index])
+                    except (ValueError, IndexError):
+                        stop_number = None
+
+                    departure_time = row['departure_time']
+                    departure_time_without_seconds = ':'.join(departure_time.split(':')[:2])
+
+                    try:
+                        dep_hour, dep_minute = map(int, departure_time_without_seconds.split(':'))
+
+                        if dep_hour >= 24:
+                            dep_hour -= 24 
+
+                        dep_time = now.replace(hour=dep_hour, minute=dep_minute, second=0, microsecond=0)
+
+                        if dep_time >= min_time: 
+                            route_id = trip_data.loc[index].route_id
+                            route_short_name = get_route_short_name_from_route_id(gtfs_data, route_id, transport_type)
+                            trip_headsign = trip_data.loc[index].trip_headsign
+
+                            schedule_number = get_schedule_number_from_trip_id(gtfs_data, index, transport_type)
+                            schedule_number_list.append(schedule_number)
+                            depature_list.append({
+                                'route_short_name': route_short_name,
+                                'trip_headsign': trip_headsign,
+                                'schedule_number': schedule_number,
+                                'departure_time': departure_time_without_seconds,
+                                'stop_number': stop_number,
+                                'vehicle_id': None, 
+                                'delay': None  
+                            })
+                    except ValueError:
+                        continue 
+
+    process_stop_times(stop_ids_a, stop_times_a, "bus")
+    process_stop_times(stop_ids_t, stop_times_t, "tram")
+
+    from ..realtime.realtime_service import get_realtime_stop_details
+    list_test = get_realtime_stop_details(gtfs_data, schedule_number_list)
+
+    for departure in depature_list:
+        schedule_number = departure['schedule_number']
+        
+        matching_entry = next((entry for entry in list_test if entry['schedule_number'] == schedule_number), None)
+        
+        if matching_entry:
+            departure['vehicle_id'] = matching_entry['vehicle_id']
+            departure['delay'] = matching_entry['delay']
+        else:
+            departure['vehicle_id'] = None
+            departure['delay'] = None
+
+    # Sortowanie listy depature_list po departure_time
+    depature_list.sort(key=lambda x: x['departure_time'])
+
+    return depature_list
 
 
 
+
+
+def get_schedule_number_from_trip_id(gtfs_data, trip_id, vehicle_type):
+    parts = trip_id.split("_")
+    block_id = f"block_{parts[1]}".strip()
+    service_id = f"service_{parts[5]}".strip()
+    if vehicle_type == "bus":
+        schedule_numbers = gtfs_data['schedule_num_a']
+    else:
+        schedule_numbers = gtfs_data['schedule_num_t']
+    schedule_number = schedule_numbers[
+        (schedule_numbers['block_id'] == block_id) &
+        (schedule_numbers['service_id'] == service_id)
+    ]['schedule_number'].values[0]
+    return schedule_number
+
+
+from datetime import datetime
+def get_stop_delay(gtfs_data, vehicle_type, trip_id, stop_id, timestamp):
+    stop_list = get_stops_list_for_trip_with_delay(gtfs_data, vehicle_type, trip_id)
+
+    for i, stop in enumerate(stop_list):
+        current_stop_id = stop[0]
+        departure_time = stop[2]
+
+        if current_stop_id == stop_id:
+            if i == 0: 
+                return 0 
+            today_date = datetime.today().strftime('%Y-%m-%d')
+
+            try:
+                departure_time_obj = datetime.strptime(f"{today_date} {departure_time}", '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                print(f"Invalid departure time format: {departure_time}")
+                continue  
+
+            departure_timestamp = int(departure_time_obj.timestamp())
+            delay_seconds = timestamp - departure_timestamp
+            delay_minutes = round(delay_seconds / 60)
+
+            return delay_minutes  
+
+    return None 
 

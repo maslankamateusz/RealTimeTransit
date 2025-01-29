@@ -11,13 +11,13 @@ interface StopDetails {
   stops: Stop[];
 }
 
-const useStopDetails = (routeName: string) => {
+const useStopList = (routeName: string) => {
   const [stopDetails, setStopDetails] = useState<StopDetails[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchStopDetails = async () => {
+    const fetchStopList = async () => {
       try {
         const response = await fetch(`http://127.0.0.1:8000/api/stops?route_number=${routeName}`);
         
@@ -39,9 +39,9 @@ const useStopDetails = (routeName: string) => {
       }
     };
 
-    fetchStopDetails();
+    fetchStopList();
   }, [routeName]); 
   return { stopDetails, loading, error };
 };
 
-export default useStopDetails;
+export default useStopList;

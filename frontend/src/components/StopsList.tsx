@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import useStopDetails from '../hooks/useStopDetails';
+import useStopDetails from '../hooks/useStopList';
 
 interface Stop {
   stop_id: string;

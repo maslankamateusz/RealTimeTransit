@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, Query, FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
 from ..services.static.gtfs_data_loader import load_gtfs_data
-from ..services.static.gtfs_processing import get_routes_list_with_labels, get_routes_dict, get_stops_list_for_route, get_schedule_data, get_schedule_from_block_id, get_timetable_data, create_csv_with_schedule_numbers, get_schedule_number_from_block_id, get_routes_list_from_block_id, get_stops_list, get_stops_list_with_location, get_shape_list_for_trip_id, get_stops_list_for_trip_with_delay
+from ..services.static.gtfs_processing import get_routes_list_with_labels, get_stops_list_for_route, get_schedule_data, get_schedule_from_block_id, get_timetable_data, create_csv_with_schedule_numbers, get_schedule_number_from_block_id, get_routes_list_from_block_id, get_stops_list, get_stops_list_with_location, get_shape_list_for_trip_id, get_stops_list_for_trip_with_delay, get_stop_details
 import pandas as pd
-from ..services.realtime.realtime_service import get_vehicle_realtime_raw_data, get_vehicle_with_route_name
+from ..services.realtime.realtime_service import get_vehicle_realtime_raw_data, get_vehicle_with_route_name, get_realtime_stop_details
 from sqlalchemy.orm import Session
 from ..database.crud import import_vehicles_from_json  
 from ..database.session import SessionLocal  
@@ -51,7 +51,7 @@ async def get_routes():
     return jsonable_encoder(routes)
 
 @router.get("/api/stops/list")
-async def get_stops_list(
+async def get_stops_list_edp(
 ):  
     data = get_gtfs_data()
     stop_list = get_stops_list(data)
@@ -194,6 +194,24 @@ async def get_stops_list_with_delay(
     stop_list_with_delay = get_stops_list_for_trip_with_delay(data, vehicle_type, trip_id)
 
     return stop_list_with_delay
+
+@router.get("/api/stop/details")
+async def get_stop_details_edp(
+    stop_name: str = Query(...),
+):  
+    data = get_gtfs_data()
+    stop_details = get_stop_details(data, stop_name)
+
+    return stop_details
+
+@router.get("/api/stop/delay")
+async def get_stop_delay_edp(
+    schedule_number: str = Query(...),
+):  
+    data = get_gtfs_data()
+    stop_details = get_realtime_stop_details(data, schedule_number)
+
+    return stop_details
 
 def configure_routes(app):
     app.include_router(router)
