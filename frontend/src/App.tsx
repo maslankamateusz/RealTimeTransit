@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage';
 import LineDetails from './pages/LineDetailsPage';
 import StopDetails from './pages/StopDetailsPage';
 import VehiclePage from './pages/VehiclePage';
+import SchedulePage from './pages/SchedulePage';
 
 function App() {
     return (
@@ -15,7 +16,7 @@ function App() {
             <Header />
             <div>
                 <Routes>
-                    <Route path="/" element={<HomePage />} />
+                    <Route path="/" element={<LinesPage />} />
                     <Route path="/map" element={<MapPage />} />
                     <Route path="/lines" element={<LinesPage />} />
                     <Route path="/stops" element={<StopsPage />} />
@@ -23,6 +24,7 @@ function App() {
                     <Route path="/lines/:lineNumber" element={<LineDetails />}/>
                     <Route path="/stop/:stopName" element={<StopDetails />}/>
                     <Route path="/vehicle/:vehicleId" element={<VehiclePage />}/>
+                    <Route path="/schedule/:serviceId/:scheduleNumber" element={<SchedulePage />}/>
                 </Routes>
             </div>
         </Router>

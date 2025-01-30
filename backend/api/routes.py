@@ -83,11 +83,11 @@ async def get_schedule_plan(
 
 @router.get("/api/routes/schedule")
 async def get_schedule(
-    block_id: str = Query(...),
-    vehicle_type: str = Query(...),
+    schedule_number: str = Query(...),
+    service_id: str = Query(...),
 ):
     data = get_gtfs_data()
-    schedule = get_schedule_from_block_id(data, block_id, vehicle_type)
+    schedule = get_schedule_from_block_id(data, schedule_number, service_id)
     json_serializable_schedule = convert_schedule_for_json(schedule)
     return json_serializable_schedule
 

@@ -396,14 +396,42 @@ def get_schedule_route_short_name(gtfs_data, trip_id, vehicle_type):
     return route_short_name
 
 
-def get_schedule_from_block_id(gtfs_data, block_id, vehicle_type):
+def get_schedule_from_block_id(gtfs_data, schedule_number, service_id):
+    if len(schedule_number) > 5:
+        vehicle_type = "bus"
+        stop_times = gtfs_data['stop_times_a']
+    else:
+        vehicle_type = "tram"
+        stop_times = gtfs_data['stop_times_t']
+
+    block_id = get_block_id_from_schedule_number(gtfs_data, schedule_number, vehicle_type, service_id)
     trips_data = get_trips_data_from_vehicle_type(gtfs_data, vehicle_type)
+    result = []
     filtered_data = trips_data[trips_data['block_id'] == block_id]
 
+    if 'trip_id' in filtered_data.index.names:
+        filtered_data = filtered_data.reset_index(drop=False)
+    if 'trip_id' not in stop_times.index.names:
+        stop_times = stop_times.set_index('trip_id')
+    for row in filtered_data.values:
+        route_id = row[1]
+        route_short_name = get_route_short_name_from_route_id(gtfs_data, route_id, vehicle_type)
+        trip_id = row[0]
+        trip_headsign = row[3]
+        filted_stop_times = stop_times.loc[trip_id]['departure_time'].values.tolist()
+        first_stop_time = filted_stop_times[0]
+        last_stop_time = filted_stop_times[-1]
+        result.append({
+            'trip_id': trip_id,
+            'trip_headsign': trip_headsign,
+            'route_short_name': route_short_name,
+            'first_stop_time': first_stop_time,
+            'last_stop_time': last_stop_time,
+            })
     if filtered_data.empty:
         raise ValueError(f"No data found for block_id {block_id}")
 
-    return filtered_data
+    return result
 
 def get_block_ids_from_route_id(gtfs_data, route_id, vehicle_type):
     trips_data = get_trips_data_from_vehicle_type(gtfs_data, vehicle_type)

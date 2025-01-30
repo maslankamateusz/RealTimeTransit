@@ -43,7 +43,7 @@ const Lines: React.FC = () => {
                         return (
                             <div
                                 key={lineNumber}
-                                className={`flex justify-center items-center text-center text-md font-semibold border transition-all ${
+                                className={`flex justify-center items-center text-center text-md font-semibold border transition-all cursor-pointer ${
                                     isNightLine
                                         ? 'bg-black text-white border-black'
                                         : isSubstituteLine

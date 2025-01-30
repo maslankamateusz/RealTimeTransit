@@ -130,7 +130,7 @@ const BlockTable: React.FC<{ lineDetails: any[] }> = ({ lineDetails }) => {
                     )}
                 </td>
                     <td className="border border-gray-300 p-2 text-center">
-                        <a href={`schedule/${encodeURIComponent(block.schedule_number)}`} className="text-blue-600 hover:underline text-lg">
+                        <a href={`/schedule/${encodeURIComponent(block.schedule_number)}`} className="text-blue-600 hover:underline text-lg">
                         {block.schedule_number}
                         </a>
                     </td>
