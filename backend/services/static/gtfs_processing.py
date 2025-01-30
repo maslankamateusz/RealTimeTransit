@@ -2,7 +2,7 @@ import datetime
 import pandas as pd
 from collections import Counter
 from operator import itemgetter
-from ...database.crud import get_vehicle_ids_with_timestamps_by_schedule_number
+from ...database.crud import get_vehicle_ids_with_timestamps_by_schedule_number, get_vehicle_status_by_id, get_vehicle_info_by_id
 from ...database.session import SessionLocal
 
 def get_bus_routes_list(gtfs_data):
@@ -636,14 +636,9 @@ def get_stop_details(gtfs_data, stop_name):
             departure['vehicle_id'] = None
             departure['delay'] = None
 
-    # Sortowanie listy depature_list po departure_time
     depature_list.sort(key=lambda x: x['departure_time'])
 
     return depature_list
-
-
-
-
 
 def get_schedule_number_from_trip_id(gtfs_data, trip_id, vehicle_type):
     parts = trip_id.split("_")
@@ -658,6 +653,48 @@ def get_schedule_number_from_trip_id(gtfs_data, trip_id, vehicle_type):
         (schedule_numbers['service_id'] == service_id)
     ]['schedule_number'].values[0]
     return schedule_number
+
+def get_block_id_from_schedule_number(gtfs_data, schedule_number, vehicle_type, service_id):
+    full_service_id = f"service_{service_id}"
+    if vehicle_type == "bus":
+        schedule_numbers = gtfs_data['schedule_num_a']
+    else:
+        schedule_numbers = gtfs_data['schedule_num_t']
+
+    matching_rows = schedule_numbers[
+        (schedule_numbers['schedule_number'] == schedule_number) &
+        (schedule_numbers['service_id'] == full_service_id)
+    ]
+
+    if matching_rows.empty:
+        return None
+
+    return matching_rows.iloc[0]['block_id']
+
+def get_trips_data_for_block(gtfs_data, block_id, service_id, vehicle_type):
+    full_service_id = f"service_{service_id}"
+    if vehicle_type == "bus":
+        stop_times = gtfs_data['stop_times_a']
+        trips_data = gtfs_data['trips_a']
+        stops_data = gtfs_data['stops_a']
+    else:
+        stop_times = gtfs_data['stop_times_t']
+        trips_data = gtfs_data['trips_t']
+        stops_data = gtfs_data['stops_t']
+
+    response_data = []
+
+    trip_id_list = trips_data[(trips_data['block_id'] == block_id) & (trips_data['service_id'] == full_service_id)].index.tolist()
+    for trip_id in trip_id_list:
+        filtred_data = stop_times.loc[trip_id][['stop_id', 'departure_time']].values.tolist()
+        for row in filtred_data:
+            row.append(stops_data[stops_data['stop_id'] == row[0]]['stop_name'].values[0])
+        response_data.append({
+            'trip_id':trip_id,
+            'stop_data':filtred_data
+        })
+
+    return response_data
 
 
 from datetime import datetime
@@ -687,3 +724,72 @@ def get_stop_delay(gtfs_data, vehicle_type, trip_id, stop_id, timestamp):
 
     return None 
 
+def search_vehicle_status_in_database(vehicle_id):
+    with SessionLocal() as session:
+        row = get_vehicle_status_by_id(session, vehicle_id)
+        schedule_number = row['schedule_number']
+        latitude = row['latitude']
+        longitude = row['longitude']
+        timestamp = row['last_updated']
+        return schedule_number, latitude, longitude, timestamp
+    return None
+
+def search_vehicle_info_in_database(vehicle_id):
+    with SessionLocal() as session:
+        row = get_vehicle_info_by_id(session, vehicle_id)
+        vehicle_id = row['vehicle_id']
+        bus_brand = row['bus_brand']
+        depot = row['depot']
+        return vehicle_id, bus_brand, depot
+    return None
+
+
+def get_vehicle_details(gtfs_data, vehicle_id):
+    from ..realtime.realtime_service import get_vehicle_realtime_status
+    vehicle_info = search_vehicle_info_in_database(vehicle_id)
+    if vehicle_info is not None:
+        vehicle_id, bus_brand, depot = vehicle_info
+        vehicle_status = get_vehicle_realtime_status(gtfs_data, vehicle_id)
+        if vehicle_id[0] in ("H", "R"):
+            vehicle_type = "tram"
+        else:
+            vehicle_type = "bus"
+
+        service_id = get_today_service_id(gtfs_data)
+        response = {}
+        if vehicle_status is not None:
+            trip_id, stop_id, vehicle_type, timestamp, delay, latitude, longitude, schedule_number, block_id = vehicle_status        
+            trips = get_trips_data_for_block(gtfs_data, block_id, service_id, vehicle_type)
+            response = {
+                    'schedule_number': schedule_number,
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'timestamp': timestamp,
+                    'trip_id': trip_id,
+                    'stop_id': stop_id,
+                    'delay': delay,
+                    'bus_brand':bus_brand,
+                    'depot':depot,
+                    'trips': trips,
+                }
+        else:
+            vehicle_status = search_vehicle_status_in_database(vehicle_id)
+            if vehicle_status is not None:
+                schedule_number, latitude, longitude, timestamp = vehicle_status
+                block_id = get_block_id_from_schedule_number(gtfs_data, schedule_number, vehicle_type, service_id)
+                trips = get_trips_data_for_block(gtfs_data, block_id, service_id, vehicle_type)
+                response = {
+                    'schedule_number': schedule_number,
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'timestamp': timestamp,
+                    'trip_id': None,
+                    'stop_id': None,
+                    'delay': None,
+                    'bus_brand':bus_brand,
+                    'depot':depot,
+                    'trips': trips
+                }
+        return response
+    else:
+        return None
