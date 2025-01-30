@@ -138,7 +138,7 @@ def prepare_realtime_data_for_database(gtfs_data: dict = Depends(get_gtfs_data))
 def get_realtime_stop_details(gtfs_data, schedule_number_list):
     vehicles_list = get_vehicle_with_route_name(gtfs_data)
     founded_vehicles = []
-
+    
     for vehicle in vehicles_list:
         if vehicle["schedule_number"] in schedule_number_list:
             vehicle_id = vehicle["vehicle_id"]

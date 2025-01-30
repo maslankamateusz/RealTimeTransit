@@ -170,6 +170,20 @@ def get_route_short_name_from_route_id(gtfs_data, route_id, vehicle_type):
     route_short_name = routes_list[routes_list["route_id"] == route_id]["route_short_name"].values[0]
     return route_short_name
 
+def get_route_short_name_from_trip_id(gtfs_data, trip_id, vehicle_type):
+    if vehicle_type == "bus":
+        routes_list = get_bus_routes_list(gtfs_data)
+        trips_list = gtfs_data["trips_a"]
+    else:
+        routes_list = get_tram_routes_list(gtfs_data)
+        trips_list = gtfs_data["trips_t"]
+
+    route_id = trips_list.loc[trip_id]["route_id"]
+    route_short_name = routes_list[routes_list["route_id"] == route_id]["route_short_name"].values[0]
+
+    return route_short_name
+
+
 def create_csv_with_schedule_numbers(gtfs_data):
     try:
         file_path_a = "./services/static/gtfs_data/bus/schedule_numbers_a.txt"
@@ -522,9 +536,10 @@ def get_stops_list_for_trip_with_delay(gtfs_data, vehicle_type, trip_id):
     else:
         stops = gtfs_data['stops_t']
         stop_times = gtfs_data['stop_times_t']
+
+    if 'trip_id' not in stop_times.index.names:
+        stop_times = stop_times.set_index('trip_id')
     stop_times_filtred = stop_times.loc[trip_id]
-    if 'stop_id' not in stops.columns:
-        stops = stops.reset_index() 
 
     stop_times_filtred.loc[:, 'stop_id'] = stop_times_filtred['stop_id'].astype(str) 
     stops['stop_id'] = stops['stop_id'].astype(str)  
@@ -682,15 +697,23 @@ def get_trips_data_for_block(gtfs_data, block_id, service_id, vehicle_type):
         trips_data = gtfs_data['trips_t']
         stops_data = gtfs_data['stops_t']
 
+    if 'trip_id' not in stop_times.index.names:
+        stop_times = stop_times.set_index('trip_id')
     response_data = []
 
     trip_id_list = trips_data[(trips_data['block_id'] == block_id) & (trips_data['service_id'] == full_service_id)].index.tolist()
+
     for trip_id in trip_id_list:
+        route_name = get_route_short_name_from_trip_id(gtfs_data, trip_id, vehicle_type)
+        trip_id_parts = trip_id.split('_')
+        trip_number = trip_id_parts[3]
         filtred_data = stop_times.loc[trip_id][['stop_id', 'departure_time']].values.tolist()
         for row in filtred_data:
             row.append(stops_data[stops_data['stop_id'] == row[0]]['stop_name'].values[0])
         response_data.append({
             'trip_id':trip_id,
+            'trip_number':trip_number,
+            'route_name': route_name,
             'stop_data':filtred_data
         })
 
