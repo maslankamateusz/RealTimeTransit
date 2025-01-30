@@ -7,6 +7,7 @@ import StatisticsPage from './pages/StatisticsPage';
 import HomePage from './pages/HomePage';
 import LineDetails from './pages/LineDetailsPage';
 import StopDetails from './pages/StopDetailsPage';
+import VehiclePage from './pages/VehiclePage';
 
 function App() {
     return (
@@ -21,6 +22,7 @@ function App() {
                     <Route path="/statistics" element={<StatisticsPage />} />
                     <Route path="/lines/:lineNumber" element={<LineDetails />}/>
                     <Route path="/stop/:stopName" element={<StopDetails />}/>
+                    <Route path="/vehicle/:vehicleId" element={<VehiclePage />}/>
                 </Routes>
             </div>
         </Router>

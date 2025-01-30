@@ -116,7 +116,7 @@ const BlockTable: React.FC<{ lineDetails: any[] }> = ({ lineDetails }) => {
 
                         return (
                         <div key={vehicle.vehicle_id} className="flex items-center justify-center my-1 relative group">
-                            <a href="#" className="text-lg text-gray-800 hover:underline">
+                            <a href={`/vehicle/${encodeURIComponent(vehicle.vehicle_id)}`} className="text-lg text-gray-800 hover:underline">
                             <span className="text-sm">{firstTwo}</span>
                             {rest}
                             </a>
@@ -130,7 +130,7 @@ const BlockTable: React.FC<{ lineDetails: any[] }> = ({ lineDetails }) => {
                     )}
                 </td>
                     <td className="border border-gray-300 p-2 text-center">
-                        <a href="#" className="text-blue-600 hover:underline text-lg">
+                        <a href={`schedule/${encodeURIComponent(block.schedule_number)}`} className="text-blue-600 hover:underline text-lg">
                         {block.schedule_number}
                         </a>
                     </td>

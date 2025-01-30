@@ -153,6 +153,34 @@ def get_vehicle_ids_with_timestamps_by_schedule_number(session, schedule_number)
 
 
 
+def get_vehicle_status_by_id(session: Session, vehicle_id: str):
+    vehicle_status = session.query(VehiclesStatus).filter(
+        VehiclesStatus.vehicle_id == vehicle_id
+    ).first()
 
+    if vehicle_status:
+        return {
+            "vehicle_id": vehicle_status.vehicle_id,
+            "schedule_number": vehicle_status.schedule_number,
+            "latitude": vehicle_status.latitude,
+            "longitude": vehicle_status.longitude,
+            "last_updated": int(vehicle_status.last_updated.timestamp())
+        }
+    
+    return None
+
+def get_vehicle_info_by_id(session: Session, vehicle_id: str):
+    vehicle_info = session.query(Vehicle).filter(
+        Vehicle.vehicle_id == vehicle_id
+    ).first()
+
+    if vehicle_info:
+        return {
+            "vehicle_id": vehicle_info.vehicle_id,
+            "bus_brand": vehicle_info.bus_brand,
+            "depot": vehicle_info.depot,
+        }
+    
+    return None
 
 
