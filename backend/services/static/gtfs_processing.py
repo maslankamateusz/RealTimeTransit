@@ -875,11 +875,13 @@ def get_vehicle_details(gtfs_data, vehicle_id):
         return None
     
 def get_vehicle_history(vehicle_id, start_date, end_date):
-    fixed_start_date =  datetime.strptime(start_date, "%Y-%m-%d").date()
+    fixed_start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
     fixed_end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    
     with SessionLocal() as session:
         vehicle_history = get_vehicle_schedule_and_routes(session, vehicle_id, fixed_start_date, fixed_end_date)
-        return vehicle_history
+        unique_history = remove_duplicate_dates(vehicle_history)
+        return unique_history
     return None
 
 
@@ -894,3 +896,13 @@ def get_route_history(route_name: int, start_date: str, end_date: str):
 
     return None
 
+def remove_duplicate_dates(vehicle_history):
+    seen_dates = set()
+    unique_history = []
+
+    for record in vehicle_history:
+        if record["date"] not in seen_dates:
+            seen_dates.add(record["date"])
+            unique_history.append(record)
+
+    return unique_history

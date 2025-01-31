@@ -32,8 +32,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onStartDateChange, on
   }, [onStartDateChange, onEndDateChange]);
 
   return (
-    <div className="flex items-center space-x-4">
-      <div className="relative">
+    <div className="flex items-center space-x-4 ">
+      <div className="relative ">
         <input
           ref={startDateRef}
           type="text"
