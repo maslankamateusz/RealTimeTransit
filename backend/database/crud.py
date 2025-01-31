@@ -2,7 +2,7 @@ import json
 import os
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import insert
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from .models import Vehicle, DailyLogs, VehiclesStatus
 
 def import_vehicles_from_json(db: Session, json_filename: str, batch_size: int = 100) -> int:
@@ -183,4 +183,47 @@ def get_vehicle_info_by_id(session: Session, vehicle_id: str):
     
     return None
 
+
+def get_vehicle_schedule_and_routes(session: Session, vehicle_id: str, start_date: date, end_date: date):
+
+    results = session.query(DailyLogs.date, DailyLogs.schedule_number, DailyLogs.route_short_names).filter(
+        DailyLogs.vehicle_id == vehicle_id,
+        DailyLogs.date >= start_date,
+        DailyLogs.date <= end_date
+    ).all()
+
+    return [
+        {
+            "date": record.date.isoformat(),
+            "schedule_number": record.schedule_number,
+            "route_short_names": record.route_short_names
+        }
+        for record in results
+    ]
+
+
+def get_all_schedules_and_vehicles(session: Session, route_name: int, start_date: date, end_date: date):
+   
+    results = session.query(
+        DailyLogs.date,
+        DailyLogs.schedule_number,
+        DailyLogs.vehicle_id,
+        DailyLogs.route_short_names
+    ).filter(
+        DailyLogs.date.between(start_date, end_date)  
+    ).all()
+
+    def contains_route(route_list, target):
+        return any(target in sublist for sublist in route_list) if isinstance(route_list, list) else False
+    filtered_data = [
+        {
+            "date": record.date.isoformat(),
+            "schedule_number": record.schedule_number,
+            "vehicle_id": record.vehicle_id,
+            "route_short_names": record.route_short_names
+        }
+        for record in results if contains_route(record.route_short_names, route_name)
+    ]
+
+    return filtered_data
 
