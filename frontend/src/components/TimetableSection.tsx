@@ -1,11 +1,11 @@
 import useStopDetails from "../hooks/useStopList";
-
+import Loader from "./Loader";
 interface TimetableSectionProps {
     lineNumber: string | undefined;
 }
 const TimetableSection: React.FC<TimetableSectionProps> = ({ lineNumber }) => {
     const { stopDetails, loading: stopsLoading, error: stopsError } = useStopDetails(lineNumber!);
-    if (stopsLoading) return <div>Pobieranie danych</div>;
+    if (stopsLoading) return <Loader />;
     if (stopsError) return <div>Błąd pobierania danych: {stopsError}</div>;
     const direction0 = Object(stopDetails)[0][0];
     const direction1 = Object(stopDetails)[1][0];

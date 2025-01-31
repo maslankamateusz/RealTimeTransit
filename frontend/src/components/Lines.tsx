@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useRoutes from '../hooks/useRoutes';
-
+import Loader from './Loader';
 interface Route {
     [key: string]: string;
 }
@@ -15,7 +15,7 @@ const Lines: React.FC = () => {
     const navigate = useNavigate();
 
     if (loading) {
-        return <div className="text-center p-4">Loading...</div>;
+        return <Loader />;
     }
 
     if (error) {

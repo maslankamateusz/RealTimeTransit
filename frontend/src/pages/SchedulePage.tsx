@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { useState } from "react";
 import useScheduleDetails from "../hooks/useScheduleDetails";
 import useStopListForTrip from "../hooks/useStopListForTrip";
+import Loader from "../components/Loader";
 
 const SchedulePage: React.FC = () => {
   const { serviceId, scheduleNumber } = useParams<{ serviceId: string; scheduleNumber: string }>();
@@ -25,7 +26,7 @@ const SchedulePage: React.FC = () => {
 
   const { stopListForTrip, loading: stopsLoading, error: stopsError } = useStopListForTrip(expandedTrip, selectedVehicleType);
 
-  if (loading) return <div className="text-center text-lg">Ładowanie danych...</div>;
+  if (loading) return <Loader />;
   if (error) return <div className="text-center text-red-500">Błąd ładowania danych: {error}</div>;
 
   return (

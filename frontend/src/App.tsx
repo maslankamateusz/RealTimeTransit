@@ -9,6 +9,7 @@ import LineDetails from './pages/LineDetailsPage';
 import StopDetails from './pages/StopDetailsPage';
 import VehiclePage from './pages/VehiclePage';
 import SchedulePage from './pages/SchedulePage';
+import TimetablePage from './pages/TimetablePage';
 
 function App() {
     return (
@@ -25,6 +26,7 @@ function App() {
                     <Route path="/stop/:stopName" element={<StopDetails />}/>
                     <Route path="/vehicle/:vehicleId" element={<VehiclePage />}/>
                     <Route path="/schedule/:serviceId/:scheduleNumber" element={<SchedulePage />}/>
+                    <Route path="/timetable/:lineNumber/:directionId" element={<TimetablePage />}/>
                 </Routes>
             </div>
         </Router>

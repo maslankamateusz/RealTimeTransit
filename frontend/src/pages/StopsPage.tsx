@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useFetch } from "../hooks/useFetch"; 
+import Loader from "../components/Loader";
 
 export default function StopsList() {
     const [search, setSearch] = useState("");
@@ -11,7 +12,7 @@ export default function StopsList() {
     ) : [];
 
     if (loading) {
-        return <div>Ładowanie przystanków...</div>;
+        return <Loader />;
     }
 
     if (error) {

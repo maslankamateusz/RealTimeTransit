@@ -1,6 +1,6 @@
 import datetime
 import pandas as pd
-from collections import Counter
+from collections import Counter, defaultdict
 from operator import itemgetter
 from ...database.crud import get_vehicle_ids_with_timestamps_by_schedule_number, get_vehicle_status_by_id, get_vehicle_info_by_id
 from ...database.session import SessionLocal
@@ -449,28 +449,57 @@ def get_route_id_from_route_number(gtfs_data, route_number):
 
     return route_id
 
+def get_service_data(gtfs_data, route_number):
+    if(len(route_number) >= 3):
+        calendar_data = gtfs_data['calendar_a']
+    else:
+        calendar_data = gtfs_data['calendar_t']
+
+    days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+    service_list = [
+        {"service_id": row["service_id"], "days": [day for day in days if row[day] == 1]}
+        for _, row in calendar_data.iterrows()
+    ]
+    return service_list
+
+
 def get_timetable_data(gtfs_data, route_number, direction, stop_id, service_id):
+
     if(len(route_number) >= 3):
         stop_times_data = gtfs_data['stop_times_a']
+        trips_data = gtfs_data['trips_a']
         block_ids = get_block_ids_from_route_id(gtfs_data, get_route_id_from_route_number(gtfs_data, route_number), "bus")
     else:
         stop_times_data = gtfs_data['stop_times_t']
+        trips_data = gtfs_data['trips_t']
         block_ids = get_block_ids_from_route_id(gtfs_data, get_route_id_from_route_number(gtfs_data, route_number), "tram")
 
 
+    if 'trip_id' in stop_times_data.index.names:
+        stop_times_data.reset_index(inplace=True)
     filtred_stop_times_data = stop_times_data[stop_times_data['stop_id'] == stop_id]
-    filtred_df = filtred_stop_times_data[['departure_time', 'stop_id']].copy()
-    filtred_df['block_id'] = filtred_df.index.str.split('_').str[:2].str.join('_')
-    filtred_df['trip_number'] = filtred_df.index.str.split('_').str[3:4].str.join('_')
-    filtred_df['service_id'] = filtred_df.index.str.split('_').str[5:].str.join('_')
-
-    filtred_df = filtred_df[(filtred_df['block_id'].isin(block_ids)) & ("service_" + filtred_df['service_id'] == service_id)]
+    filtred_df = filtred_stop_times_data[['departure_time', 'stop_id', 'trip_id']].copy()
+    trips_data = trips_data['direction_id']
+    merged_df = pd.merge(filtred_df, trips_data, on="trip_id", how="left")
+    if 'trip_id' not in merged_df.index.names:
+        merged_df = merged_df.set_index('trip_id')
+    merged_df['block_id'] = merged_df.index.str.split('_').str[:2].str.join('_')
+    merged_df['trip_number'] = merged_df.index.str.split('_').str[3:4].str.join('_')
+    merged_df['service_id'] = merged_df.index.str.split('_').str[5:].str.join('_')
+    merged_df = merged_df[(merged_df['block_id'].isin(block_ids)) & ("service_" + merged_df['service_id'] == service_id)]
     if direction == 0:
-        filtred_df = filtred_df[filtred_df['trip_number'].astype(int) % 2 == 0]
+        filtred_merged_df = merged_df[merged_df['direction_id'] == 0]
     elif direction == 1:
-        filtred_df = filtred_df[filtred_df['trip_number'].astype(int) % 2 != 0]
+        filtred_merged_df = merged_df[merged_df['direction_id'] == 1]
+    
+    time_list  = filtred_merged_df['departure_time'].values.tolist()
+    time_list.sort()
+    time_dict = defaultdict(list)
 
-    return filtred_df.to_dict(orient='records')
+    for time in time_list:
+        hour, minute, _ = time.split(":")
+        time_dict[int(hour)].append(int(minute))
+    return time_dict 
 
 def get_schedule_number_from_block_id(gtfs_data, block_id, service_id, vehicle_type):
     schedule_data = gtfs_data['schedule_num_a'] if vehicle_type == "bus" else gtfs_data['schedule_num_t']

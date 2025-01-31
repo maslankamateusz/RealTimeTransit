@@ -26,6 +26,8 @@ const BlockTable: React.FC<{ lineDetails: any[] }> = ({ lineDetails }) => {
         const seconds = date.getSeconds().toString().padStart(2, '0');
         return `${hours}:${minutes}:${seconds}`;
     };
+    
+    const serviceId = lineDetails[0].service_id.slice(-1)
   return (
     <section className="mb-8 mr-3">
       <table className="table-auto w-full border-collapse border border-gray-300 mr-10">
@@ -130,7 +132,7 @@ const BlockTable: React.FC<{ lineDetails: any[] }> = ({ lineDetails }) => {
                     )}
                 </td>
                     <td className="border border-gray-300 p-2 text-center">
-                        <a href={`/schedule/${encodeURIComponent(block.schedule_number)}`} className="text-blue-600 hover:underline text-lg">
+                        <a href={`/schedule/${serviceId}/${encodeURIComponent(block.schedule_number)}`} className="text-blue-600 hover:underline text-lg">
                         {block.schedule_number}
                         </a>
                     </td>
