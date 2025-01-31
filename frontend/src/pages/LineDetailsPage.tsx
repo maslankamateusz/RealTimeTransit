@@ -5,6 +5,7 @@ import ServiceSelection from '../components/ServiceSelection';
 import BlockTable from '../components/BlockTable';
 import StopsList from '../components/StopsList';
 import TimetableSection from '../components/TimetableSection';
+import Loader from '../components/Loader';
 
 const LineDetails: React.FC = () => {
   const { lineNumber } = useParams<{ lineNumber: string }>();
@@ -18,7 +19,7 @@ const LineDetails: React.FC = () => {
     }
   }, [lineDetails]);
 
-  if (loading) return <div>Loading line details...</div>;
+  if (loading) return <Loader />;
   if (error) return <div>Error loading line details: {error}</div>;
 
 

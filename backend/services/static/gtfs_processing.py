@@ -1,8 +1,8 @@
 import datetime
 import pandas as pd
-from collections import Counter
+from collections import Counter, defaultdict
 from operator import itemgetter
-from ...database.crud import get_vehicle_ids_with_timestamps_by_schedule_number, get_vehicle_status_by_id, get_vehicle_info_by_id
+from ...database.crud import get_vehicle_ids_with_timestamps_by_schedule_number, get_vehicle_status_by_id, get_vehicle_info_by_id, get_vehicle_schedule_and_routes, get_all_schedules_and_vehicles
 from ...database.session import SessionLocal
 
 def get_bus_routes_list(gtfs_data):
@@ -396,14 +396,42 @@ def get_schedule_route_short_name(gtfs_data, trip_id, vehicle_type):
     return route_short_name
 
 
-def get_schedule_from_block_id(gtfs_data, block_id, vehicle_type):
+def get_schedule_from_block_id(gtfs_data, schedule_number, service_id):
+    if len(schedule_number) > 5:
+        vehicle_type = "bus"
+        stop_times = gtfs_data['stop_times_a']
+    else:
+        vehicle_type = "tram"
+        stop_times = gtfs_data['stop_times_t']
+
+    block_id = get_block_id_from_schedule_number(gtfs_data, schedule_number, vehicle_type, service_id)
     trips_data = get_trips_data_from_vehicle_type(gtfs_data, vehicle_type)
+    result = []
     filtered_data = trips_data[trips_data['block_id'] == block_id]
 
+    if 'trip_id' in filtered_data.index.names:
+        filtered_data = filtered_data.reset_index(drop=False)
+    if 'trip_id' not in stop_times.index.names:
+        stop_times = stop_times.set_index('trip_id')
+    for row in filtered_data.values:
+        route_id = row[1]
+        route_short_name = get_route_short_name_from_route_id(gtfs_data, route_id, vehicle_type)
+        trip_id = row[0]
+        trip_headsign = row[3]
+        filted_stop_times = stop_times.loc[trip_id]['departure_time'].values.tolist()
+        first_stop_time = filted_stop_times[0]
+        last_stop_time = filted_stop_times[-1]
+        result.append({
+            'trip_id': trip_id,
+            'trip_headsign': trip_headsign,
+            'route_short_name': route_short_name,
+            'first_stop_time': first_stop_time,
+            'last_stop_time': last_stop_time,
+            })
     if filtered_data.empty:
         raise ValueError(f"No data found for block_id {block_id}")
 
-    return filtered_data
+    return result
 
 def get_block_ids_from_route_id(gtfs_data, route_id, vehicle_type):
     trips_data = get_trips_data_from_vehicle_type(gtfs_data, vehicle_type)
@@ -421,28 +449,57 @@ def get_route_id_from_route_number(gtfs_data, route_number):
 
     return route_id
 
+def get_service_data(gtfs_data, route_number):
+    if(len(route_number) >= 3):
+        calendar_data = gtfs_data['calendar_a']
+    else:
+        calendar_data = gtfs_data['calendar_t']
+
+    days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+    service_list = [
+        {"service_id": row["service_id"], "days": [day for day in days if row[day] == 1]}
+        for _, row in calendar_data.iterrows()
+    ]
+    return service_list
+
+
 def get_timetable_data(gtfs_data, route_number, direction, stop_id, service_id):
+
     if(len(route_number) >= 3):
         stop_times_data = gtfs_data['stop_times_a']
+        trips_data = gtfs_data['trips_a']
         block_ids = get_block_ids_from_route_id(gtfs_data, get_route_id_from_route_number(gtfs_data, route_number), "bus")
     else:
         stop_times_data = gtfs_data['stop_times_t']
+        trips_data = gtfs_data['trips_t']
         block_ids = get_block_ids_from_route_id(gtfs_data, get_route_id_from_route_number(gtfs_data, route_number), "tram")
 
 
+    if 'trip_id' in stop_times_data.index.names:
+        stop_times_data.reset_index(inplace=True)
     filtred_stop_times_data = stop_times_data[stop_times_data['stop_id'] == stop_id]
-    filtred_df = filtred_stop_times_data[['departure_time', 'stop_id']].copy()
-    filtred_df['block_id'] = filtred_df.index.str.split('_').str[:2].str.join('_')
-    filtred_df['trip_number'] = filtred_df.index.str.split('_').str[3:4].str.join('_')
-    filtred_df['service_id'] = filtred_df.index.str.split('_').str[5:].str.join('_')
-
-    filtred_df = filtred_df[(filtred_df['block_id'].isin(block_ids)) & ("service_" + filtred_df['service_id'] == service_id)]
+    filtred_df = filtred_stop_times_data[['departure_time', 'stop_id', 'trip_id']].copy()
+    trips_data = trips_data['direction_id']
+    merged_df = pd.merge(filtred_df, trips_data, on="trip_id", how="left")
+    if 'trip_id' not in merged_df.index.names:
+        merged_df = merged_df.set_index('trip_id')
+    merged_df['block_id'] = merged_df.index.str.split('_').str[:2].str.join('_')
+    merged_df['trip_number'] = merged_df.index.str.split('_').str[3:4].str.join('_')
+    merged_df['service_id'] = merged_df.index.str.split('_').str[5:].str.join('_')
+    merged_df = merged_df[(merged_df['block_id'].isin(block_ids)) & ("service_" + merged_df['service_id'] == service_id)]
     if direction == 0:
-        filtred_df = filtred_df[filtred_df['trip_number'].astype(int) % 2 == 0]
+        filtred_merged_df = merged_df[merged_df['direction_id'] == 0]
     elif direction == 1:
-        filtred_df = filtred_df[filtred_df['trip_number'].astype(int) % 2 != 0]
+        filtred_merged_df = merged_df[merged_df['direction_id'] == 1]
+    
+    time_list  = filtred_merged_df['departure_time'].values.tolist()
+    time_list.sort()
+    time_dict = defaultdict(list)
 
-    return filtred_df.to_dict(orient='records')
+    for time in time_list:
+        hour, minute, _ = time.split(":")
+        time_dict[int(hour)].append(int(minute))
+    return time_dict 
 
 def get_schedule_number_from_block_id(gtfs_data, block_id, service_id, vehicle_type):
     schedule_data = gtfs_data['schedule_num_a'] if vehicle_type == "bus" else gtfs_data['schedule_num_t']
@@ -816,3 +873,36 @@ def get_vehicle_details(gtfs_data, vehicle_id):
         return response
     else:
         return None
+    
+def get_vehicle_history(vehicle_id, start_date, end_date):
+    fixed_start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    fixed_end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    
+    with SessionLocal() as session:
+        vehicle_history = get_vehicle_schedule_and_routes(session, vehicle_id, fixed_start_date, fixed_end_date)
+        unique_history = remove_duplicate_dates(vehicle_history)
+        return unique_history
+    return None
+
+
+def get_route_history(route_name: int, start_date: str, end_date: str):
+    fixed_start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    fixed_end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+    with SessionLocal() as session:
+        data = get_all_schedules_and_vehicles(session, int(route_name), fixed_start_date, fixed_end_date)
+        return data
+
+
+    return None
+
+def remove_duplicate_dates(vehicle_history):
+    seen_dates = set()
+    unique_history = []
+
+    for record in vehicle_history:
+        if record["date"] not in seen_dates:
+            seen_dates.add(record["date"])
+            unique_history.append(record)
+
+    return unique_history

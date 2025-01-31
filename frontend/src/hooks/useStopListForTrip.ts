@@ -12,7 +12,6 @@ const useStopListForTrip = (tripId: string | null, type: string | null) => {
     const [error, setError] = useState<any>(null);
   
     useEffect(() => {
-      console.log("Próba fetgch");
   
       if (!tripId || !type) {
         setStopListForTrip(null);

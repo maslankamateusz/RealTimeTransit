@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
 from ..services.static.gtfs_data_loader import load_gtfs_data
-from ..services.static.gtfs_processing import get_routes_list_with_labels, get_stops_list_for_route, get_schedule_data, get_schedule_from_block_id, get_timetable_data, create_csv_with_schedule_numbers, get_schedule_number_from_block_id, get_routes_list_from_block_id, get_stops_list, get_stops_list_with_location, get_shape_list_for_trip_id, get_stops_list_for_trip_with_delay, get_stop_details, get_vehicle_details
+from ..services.static.gtfs_processing import get_routes_list_with_labels, get_stops_list_for_route, get_schedule_data, get_schedule_from_block_id, get_timetable_data, create_csv_with_schedule_numbers, get_schedule_number_from_block_id, get_routes_list_from_block_id, get_stops_list, get_stops_list_with_location, get_shape_list_for_trip_id, get_stops_list_for_trip_with_delay, get_stop_details, get_vehicle_details, get_service_data, get_vehicle_history, get_route_history
 import pandas as pd
 from ..services.realtime.realtime_service import get_vehicle_realtime_raw_data, get_vehicle_with_route_name, get_realtime_stop_details
 from sqlalchemy.orm import Session
@@ -83,11 +83,11 @@ async def get_schedule_plan(
 
 @router.get("/api/routes/schedule")
 async def get_schedule(
-    block_id: str = Query(...),
-    vehicle_type: str = Query(...),
+    schedule_number: str = Query(...),
+    service_id: str = Query(...),
 ):
     data = get_gtfs_data()
-    schedule = get_schedule_from_block_id(data, block_id, vehicle_type)
+    schedule = get_schedule_from_block_id(data, schedule_number, service_id)
     json_serializable_schedule = convert_schedule_for_json(schedule)
     return json_serializable_schedule
 
@@ -221,6 +221,34 @@ async def get_vehicle_details_edp(
     vehicle_details = get_vehicle_details(data, vehicle_id)
 
     return vehicle_details
+
+
+@router.get("/api/service")
+async def get_service_data_edp(
+    route_number: str = Query(...),
+):
+    data = get_gtfs_data()
+    service_data = get_service_data(data, route_number )
+    return service_data
+
+@router.get("/api/history/vehicle")
+async def get_vehicle_history_edp(
+    vehicle_id: str = Query(...),
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+):
+    vehicle_history = get_vehicle_history(vehicle_id, start_date, end_date )
+    return vehicle_history
+
+@router.get("/api/history/route")
+async def get_vehicle_history_edp(
+    route_name: str = Query(...),
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+):
+    route_history = get_route_history(route_name, start_date, end_date )
+    return route_history
+
 
 def configure_routes(app):
     app.include_router(router)

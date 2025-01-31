@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import useRoutes from '../hooks/useRoutes';
-
+import Loader from './Loader';
 interface Route {
     [key: string]: string;
 }
@@ -15,7 +15,7 @@ const Lines: React.FC = () => {
     const navigate = useNavigate();
 
     if (loading) {
-        return <div className="text-center p-4">Loading...</div>;
+        return <Loader />;
     }
 
     if (error) {
@@ -43,7 +43,7 @@ const Lines: React.FC = () => {
                         return (
                             <div
                                 key={lineNumber}
-                                className={`flex justify-center items-center text-center text-md font-semibold border transition-all ${
+                                className={`flex justify-center items-center text-center text-md font-semibold border transition-all cursor-pointer ${
                                     isNightLine
                                         ? 'bg-black text-white border-black'
                                         : isSubstituteLine

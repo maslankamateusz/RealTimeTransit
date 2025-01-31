@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import useStopDetails from "../hooks/useStopDetails";
 import { useEffect, useState } from "react";
-
+import Loader from "../components/Loader";
 const StopDetails: React.FC = () => {
   const { stopName } = useParams<{ stopName: string }>();
   const { stopDetails, loading, error } = useStopDetails(stopName!);
@@ -55,7 +55,7 @@ const StopDetails: React.FC = () => {
     setDepartures(finalDepartures);
   }, [stopDetails]);
 
-  if (loading) return <div>Loading line details...</div>;
+  if (loading) return <Loader />;
   if (error) return <div>Error loading line details: {error}</div>;
 
   return (

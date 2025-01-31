@@ -4,7 +4,7 @@ import { CheckCircle } from "lucide-react";
 import Button from "../components/Button";
 import useVehicleInfo from "../hooks/useVehicleInfo";
 import { useNavigate } from "react-router-dom";
-
+import Loader from "../components/Loader";
 import {
   MapContainer,
   TileLayer,
@@ -52,7 +52,7 @@ const VehiclePage: React.FC = () => {
     }
   }, [vehicleInfo]);
 
-  if (loading) return <div>Ładowanie...</div>;
+  if (loading) return <Loader />;
   if (error) return <div>Błąd: {error}</div>;
   if (!vehicleInfo || currentTripIndex === -1) return <div>Brak danych dla pojazdu {vehicleId}</div>;
 
