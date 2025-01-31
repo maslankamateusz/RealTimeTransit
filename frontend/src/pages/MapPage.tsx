@@ -254,7 +254,7 @@ const MapPage: React.FC = () => {
                 Brygada: 
                 <a
                   className="text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500"
-                  href={`/schedule/${vehicle.schedule_number}`}
+                  href={`/lines/${vehicle.route_short_name}`}
                 >
                   <span className="ms-1">{vehicle.schedule_number}</span>
                 </a>
@@ -328,7 +328,7 @@ const MapPage: React.FC = () => {
                                     </span>
                                   )}
                                 </td>
-                                <td className="px-4 py-2 hover:underline"><a href={`stops/${stop.stopId}`}>{stop.stopName}</a></td>
+                                <td className="px-4 py-2 hover:underline"><a href={`/stop/${stop.stopName}`}>{stop.stopName}</a></td>
                               </tr>
                             );
                           });
