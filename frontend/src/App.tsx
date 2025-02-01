@@ -4,7 +4,6 @@ import MapPage from './pages/MapPage';
 import LinesPage from './pages/LinesPage';
 import StopsPage from './pages/StopsPage';
 import StatisticsPage from './pages/StatisticsPage';
-import HomePage from './pages/HomePage';
 import LineDetails from './pages/LineDetailsPage';
 import StopDetails from './pages/StopDetailsPage';
 import VehiclePage from './pages/VehiclePage';

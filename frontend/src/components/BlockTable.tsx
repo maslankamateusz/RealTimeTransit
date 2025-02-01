@@ -44,20 +44,6 @@ const BlockTable: React.FC<{ lineDetails: any[] }> = ({ lineDetails }) => {
         {lineDetails.map((block: Block) => {
             const startTimeWithoutSeconds: string = block.start_time.substring(0, 5);
             const endTimeWithoutSeconds: string = block.end_time.substring(0, 5);
-            const [endHour, endMinute] = endTimeWithoutSeconds.split(':').map(Number);
-            const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
-
-            const isNightLine = block.route_short_names.some((line) => line.startsWith('6') || line.startsWith('9'));
-            let isBeforeEndTime = false;
-
-            if (isNightLine) {
-                const adjustedEndHour = endHour + 24;
-                isBeforeEndTime = currentHour < adjustedEndHour || (currentHour === adjustedEndHour && currentMinute < endMinute);
-            } else {
-                isBeforeEndTime = currentHour < endHour || (currentHour === endHour && currentMinute < endMinute);
-            }
 
             const lines = block.route_short_names;
             const vehicles = block.vehicles;
