@@ -1,5 +1,7 @@
 import pandas as pd
 import os
+import requests
+import zipfile
 
 class GTFSData:
     def __init__(self):
@@ -13,11 +15,50 @@ class GTFSData:
 
 gtfs_data_instance = GTFSData()
 
+def should_download_files(folder_path):
+    if not os.path.exists(folder_path):
+        return True 
+
+    files = list(os.scandir(folder_path))
+    return len(files) <= 1 
+
+def download_and_extract_gtfs(url, extract_to):
+    if not should_download_files(extract_to):
+        print(f"Pliki GTFS w {extract_to} już istnieją, pomijam pobieranie.")
+        return
+
+    os.makedirs(extract_to, exist_ok=True)
+    zip_path = os.path.join(extract_to, os.path.basename(url))
+
+    print(f"Pobieranie {url}...")
+    response = requests.get(url, stream=True)
+    
+    if response.status_code == 200:
+        with open(zip_path, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+        print(f"Pobrano: {zip_path}")
+
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_to)
+        print(f"Rozpakowano do: {extract_to}")
+
+        os.remove(zip_path)
+    else:
+        raise Exception(f"Nie udało się pobrać pliku: {url}")
+
 def load_gtfs_data():
-    extracted_path = os.path.join(os.path.dirname(__file__), 'gtfs_data')
+    base_path = os.path.dirname(__file__)
+    extracted_path = os.path.join(base_path, 'gtfs_data')
 
     bus_path = os.path.join(extracted_path, 'bus')
     tram_path = os.path.join(extracted_path, 'tram')
+
+    url_gtfs_a = "https://gtfs.ztp.krakow.pl/GTFS_KRK_A.zip"
+    url_gtfs_t = "https://gtfs.ztp.krakow.pl/GTFS_KRK_T.zip"
+
+    download_and_extract_gtfs(url_gtfs_a, bus_path)
+    download_and_extract_gtfs(url_gtfs_t, tram_path)
 
     stops_df_a = pd.read_csv(os.path.join(bus_path, 'stops.txt'))
     routes_df_a = pd.read_csv(os.path.join(bus_path, 'routes.txt'))
@@ -34,8 +75,6 @@ def load_gtfs_data():
     calendar_df_t = pd.read_csv(os.path.join(tram_path, 'calendar.txt'))
     schedule_numbers_df_t = pd.read_csv(os.path.join(tram_path, 'schedule_numbers_t.txt'))
     shapes_df_t = pd.read_csv(os.path.join(tram_path, 'shapes.txt'))
-
-
 
     try:
         if 'trip_id' in trips_df_a.columns:
@@ -58,7 +97,6 @@ def load_gtfs_data():
 
     routes_df_a['route_short_name'] = routes_df_a['route_short_name'].astype(str)
     routes_df_t['route_short_name'] = routes_df_t['route_short_name'].astype(str)
-
 
     gtfs_data = {
         'stops_a': stops_df_a,

@@ -109,7 +109,7 @@ def get_routes_list(gtfs_data, trip_id, vehicle_type):
     routes_list = get_routes_list_from_block_id(gtfs_data, vehicle_type, block_id)
     return routes_list
 
-def prepare_realtime_data_for_database(gtfs_data: dict = Depends(get_gtfs_data)):
+def prepare_realtime_data_for_database():
     
     print("New realtime data processing started.")
     gtfs_data = get_gtfs_data()
