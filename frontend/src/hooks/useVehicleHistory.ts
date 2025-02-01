@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
 interface VehicleHistoryEntry {
   date: string;
   schedule_number: string[];
@@ -20,11 +22,10 @@ const useVehicleHistory = (vehicleId: string, startDate: string, endDate: string
     const fetchVehicleHistory = async () => {
       setLoading(true);
       setError(null);
-      console.log("Próba", vehicleId, startDate, endDate);
 
       try {
         const response = await fetch(
-          `http://127.0.0.1:8000/api/history/vehicle?vehicle_id=${vehicleId}&start_date=${startDate}&end_date=${endDate}`
+          `${API_URL}/api/history/vehicle?vehicle_id=${vehicleId}&start_date=${startDate}&end_date=${endDate}`
         );
 
         if (!response.ok) {

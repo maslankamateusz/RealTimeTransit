@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
 interface RouteDetails {
   route_short_name: string;  
   trip_headsign: string;    
@@ -26,7 +28,7 @@ const useStopDetails = (stop_name: string) => {
         setError(null);
 
         const response = await fetch(
-          `http://127.0.0.1:8000/api/stop/details?stop_name=${encodeURIComponent(stop_name)}`
+          `${API_URL}/api/stop/details?stop_name=${encodeURIComponent(stop_name)}`
         );
 
         if (!response.ok) {

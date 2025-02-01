@@ -59,7 +59,7 @@ const StopDetails: React.FC = () => {
   if (error) return <div>Error loading line details: {error}</div>;
 
   return (
-    <div className="container m-auto px-32 p-4 mt-1 py-10">
+    <div className="container m-auto px-8 md:px-32 p-4 mt-1 py-10">
       <h1 className="text-4xl font-semibold mb-4">{stopName}</h1>
       <div className="overflow-x-auto">
         <table className="w-3/4 border border-gray-300 text-sm text-gray-900">

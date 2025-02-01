@@ -216,7 +216,7 @@ const VehiclePage: React.FC = () => {
         <Button onClick={handleNextTrip} disabled={currentTripIndex === vehicleInfo.trips.length - 1}>
           Następny kurs
         </Button>
-        <Button onClick={() => navigate(`/schedule/${encodeURIComponent(vehicleInfo.schedule_number)}`)}>Pokaż brygadę</Button>
+        <Button onClick={() => navigate(`/lines/${currentTrip.route_name}`)}>Pokaż brygadę</Button>
 
       </div>
      

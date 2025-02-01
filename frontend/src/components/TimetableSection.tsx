@@ -25,7 +25,7 @@ const TimetableSection: React.FC<TimetableSectionProps> = ({ lineNumber }) => {
             </a>
             </li>
             <li>
-            <a href="#" className="text-blue-600 hover:underline">
+            <a href={`/timetable/${lineNumber}/1`} className="text-blue-600 hover:underline">
                 → {direction1.map((direction: string, index: number) => (
                 <span key={index} className={index === 0 ? "text-lg font-semibold" : "text-sm"}>
                     {direction}

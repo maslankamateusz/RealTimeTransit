@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
 interface StopData {
   stop_id: string;
   time: string;
@@ -34,7 +36,7 @@ const useVehicleInfo = (vehicleId: string) => {
   useEffect(() => {
     const fetchVehicleInfo = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/vehicle/?vehicle_id=${vehicleId}`);
+        const response = await fetch(`${API_URL}/api/vehicle/?vehicle_id=${vehicleId}`);
 
         if (!response.ok) {
           throw new Error('Failed to fetch data');

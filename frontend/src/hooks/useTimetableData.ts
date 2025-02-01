@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
 interface TimetableData {
   [hour: string]: number[];
 }
@@ -11,11 +13,10 @@ const useTimetableData = (routeName: string, direction: string, stop_id: string,
 
   useEffect(() => {
     const fetchServiceData = async () => {
-        console.log(routeName, direction, stop_id, service_id);
-        
+       
       try {
         const response = await fetch(
-          `http://127.0.0.1:8000/api/routes/timetable?route_number=${routeName}&direction=${direction}&stop_id=${stop_id}&service_id=${service_id}`
+          `${API_URL}/api/routes/timetable?route_number=${routeName}&direction=${direction}&stop_id=${stop_id}&service_id=${service_id}`
         );
 
         if (!response.ok) {

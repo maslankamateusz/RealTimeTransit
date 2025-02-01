@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
 interface Trip {
   trip_id: string;
   trip_headsign: string;
@@ -18,7 +20,7 @@ const useScheduleDetails = (serviceId: string, scheduleNumber: string) => {
     const fetchVehicleInfo = async () => {
       try {
         const response = await fetch(
-          `http://127.0.0.1:8000/api/routes/schedule?schedule_number=${encodeURIComponent(scheduleNumber)}&service_id=${serviceId}`
+          `${API_URL}/api/routes/schedule?schedule_number=${encodeURIComponent(scheduleNumber)}&service_id=${serviceId}`
         );
 
         if (!response.ok) {

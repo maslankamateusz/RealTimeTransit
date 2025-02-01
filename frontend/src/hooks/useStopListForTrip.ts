@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
 interface StopSchedule {
   stopId: string;      
   stopName: string;    
@@ -21,7 +23,7 @@ const useStopListForTrip = (tripId: string | null, type: string | null) => {
   
       const fetchData = async () => {
         try {
-          const response = await fetch(`http://127.0.0.1:8000/api/trip/stops/delay?trip_id=${tripId}&vehicle_type=${type}`);
+          const response = await fetch(`${API_URL}/api/trip/stops/delay?trip_id=${tripId}&vehicle_type=${type}`);
           const data = await response.json();
   
           const mappedData: StopSchedule[] = data.map((stop: any) => ({

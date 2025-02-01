@@ -20,7 +20,7 @@ export default function StopsList() {
     }
 
     return (
-        <div className="py-10 container mx-auto ps-32 h-[92vh] mt-1">
+        <div className="py-10 container mx-auto ps-8 md:ps-32 h-[92vh] mt-1">
             <h1 className="text-4xl font-semibold mb-4 ">Przystanki</h1>
             <input
                 type="text"

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
 const useLineDetails = (lineNumber: string, service_id: string | null) => {
     const [lineDetails, setLineDetails] = useState<any>(null);
     const [serviceDetails, setServiceDetails] = useState<any>(null);
@@ -56,7 +58,7 @@ const useLineDetails = (lineNumber: string, service_id: string | null) => {
             try {
                 setLoading(true);
                 const response = await fetch(
-                    `http://127.0.0.1:8000/api/routes/schedule/plan?route_name=${lineNumber}`
+                    `${API_URL}/api/routes/schedule/plan?route_name=${lineNumber}`
                 );
                 if (!response.ok) {
                     throw new Error('Failed to fetch line details');

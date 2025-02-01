@@ -134,7 +134,6 @@ const MapPage: React.FC = () => {
   const { shapesData, loading: shapesLoading, error: shapesError } = useShapesPointData(selectedVehicle.tripId, selectedVehicle.type);
 
   const { stopListForTrip, loading: stopListLoading, error: stopListError } = useStopListForTrip(selectedVehicle.tripId, selectedVehicle.type); // Używamy hooka tutaj
-  console.log(stopListForTrip);
   
   if (loading || stopLoading || shapesLoading || stopListLoading) console.log("Downloading data");
   if (error || stopError || shapesError || stopListError) console.warn("Error fetching data");
@@ -270,7 +269,7 @@ const MapPage: React.FC = () => {
 
           
       {selectedVehicle.tripId && (
-        <div className="w-[25%] overflow-y-scroll border-l border-gray-300 p-5">
+        <div className="hidden lg:block lg:w-[25%] overflow-y-scroll border-l border-gray-300 p-5">
           <div className="space-y-2">
             {stopListForTrip && stopListForTrip.length > 0 && (
               <div className="mt-1">

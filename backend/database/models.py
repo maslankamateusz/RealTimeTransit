@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey, Float, DateTime 
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import ARRAY, JSON
-from .session import Base
+from database.session import Base
 
 class Vehicle(Base):
     __tablename__ = "vehicles"

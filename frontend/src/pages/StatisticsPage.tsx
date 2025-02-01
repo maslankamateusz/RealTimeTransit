@@ -130,7 +130,7 @@ const StatisticsPage: React.FC = () => {
   }, [fetchedData, historyType]) as VehicleData[] | null;
 
   return (
-    <div className="py-10 container mx-auto ps-32 h-[92vh] mt-1">
+    <div className="py-10 container mx-auto ps-6 md:ps-32 h-[92vh] mt-1">
       <h1 className="text-4xl font-semibold mb-4">Dane statystyczne</h1>
 
       <div className="flex gap-10 mb-6">
@@ -140,28 +140,28 @@ const StatisticsPage: React.FC = () => {
 
       {isFormVisible && (
         <div className="w-full flex flex-col items-start gap-4 mt-10">
-          <div className="flex">
+          <div className="flex flex-col md:flex-row md:items-center">
             <DateRangePicker onStartDateChange={setStartDate} onEndDateChange={setEndDate} />
-            <div className="ms-12">
+            <div className="mt-4 md:mt-0 md:ms-12">
               <input
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                className="bg-gray-700 border-1 border-gray-700 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                className="bg-gray-700 border border-gray-700 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
                 placeholder={historyType === "vehicle" ? "Podaj numer pojazdu" : "Podaj numer linii"}
               />
             </div>
           </div>
          <button 
             onClick={handleSubmit}
-            className="mt-4 mx-36 px-6 py-2 bg-white text-gray-700 border-2 border-gray-700 hover:bg-gray-700 hover:text-white font-medium rounded-lg transition-all 
+            className="mt-4 mx-8 md:mx-36 px-6 py-2 bg-white text-gray-700 border-2 border-gray-700 hover:bg-gray-700 hover:text-white font-medium rounded-lg transition-all 
             focus:ring-2 focus:ring-blue-400"
           >
             {historyType === "vehicle" ? "Szukaj pojazdu" : "Szukaj linii"}
           </button>
 
           {historyType === "line" && groupedData && (
-            <div className="my-6 w-full overflow-x-auto">
+            <div className="my-6 w-[90%] md:w-full overflow-x-auto">
               <table className="table-auto w-full text-center border border-gray-300">
                 <thead className="bg-gray-200">
                   <tr>
@@ -194,8 +194,8 @@ const StatisticsPage: React.FC = () => {
           )}
 
           {historyType === "vehicle" && vehicleData && (
-            <div className="my-6 w-full overflow-x-auto">
-              <table className="table-auto w-full text-center border border-gray-300">
+            <div className="my-6 w-full overflow-auto">
+              <table className="table-auto w-7/8 md:w-full text-center border border-gray-300">
                 <thead className="bg-gray-200">
                     <tr>
                     <th className="border border-gray-300 px-4 py-2">Data</th>

@@ -3,7 +3,7 @@ import os
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import insert
 from datetime import datetime, timezone, date
-from .models import Vehicle, DailyLogs, VehiclesStatus
+from database.models import Vehicle, DailyLogs, VehiclesStatus
 
 def import_vehicles_from_json(db: Session, json_filename: str, batch_size: int = 100) -> int:
     json_path = os.path.join(os.path.dirname(__file__), 'data', json_filename)

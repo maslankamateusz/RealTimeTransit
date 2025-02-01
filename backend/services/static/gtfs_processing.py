@@ -2,8 +2,8 @@ import datetime
 import pandas as pd
 from collections import Counter, defaultdict
 from operator import itemgetter
-from ...database.crud import get_vehicle_ids_with_timestamps_by_schedule_number, get_vehicle_status_by_id, get_vehicle_info_by_id, get_vehicle_schedule_and_routes, get_all_schedules_and_vehicles
-from ...database.session import SessionLocal
+from database.crud import get_vehicle_ids_with_timestamps_by_schedule_number, get_vehicle_status_by_id, get_vehicle_info_by_id, get_vehicle_schedule_and_routes, get_all_schedules_and_vehicles
+from database.session import SessionLocal
 
 def get_bus_routes_list(gtfs_data):
     if 'route_id' in gtfs_data['routes_a'].index.names:

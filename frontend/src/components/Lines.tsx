@@ -68,7 +68,7 @@ const Lines: React.FC = () => {
     };
 
     return (
-        <div className="pb-10 container mx-auto px-32">
+        <div className="pb-10 container mx-auto px-4 md:px-32">
             <h1 className="text-5xl font-medium my-8">Linie</h1>
             {Object.keys(routes).map((category) => {
                 const categoryKey = category as keyof Routes;

@@ -1,12 +1,12 @@
-from .realtime_fetcher import download_gtfs_realtime_file
-from .realtime_parser import parse_vehicle_positions
+from services.realtime.realtime_fetcher import download_gtfs_realtime_file
+from services.realtime.realtime_parser import parse_vehicle_positions
 from typing import List, Dict
-from ...database.session import SessionLocal
-from ...database.crud import update_vehicles_status
+from database.session import SessionLocal
+from database.crud import update_vehicles_status
 from fastapi import Depends
 from fastapi import Request
-from ..static.gtfs_data_loader import gtfs_data_instance
-from ..static.gtfs_processing import get_routes_list_from_block_id, get_schedule_number_from_block_id, get_stop_details, get_schedule_number_from_trip_id, get_stop_delay
+from services.static.gtfs_data_loader import gtfs_data_instance
+from services.static.gtfs_processing import get_routes_list_from_block_id, get_schedule_number_from_block_id, get_stop_details, get_schedule_number_from_trip_id, get_stop_delay
 
 def get_gtfs_data(request: Request = None):
     gtfs_data = gtfs_data_instance.get_data()

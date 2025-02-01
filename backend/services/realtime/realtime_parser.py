@@ -1,4 +1,4 @@
-import backend.services.gtfs_realtime_pb2 as gtfs_realtime_pb2
+import services.gtfs_realtime_pb2 as gtfs_realtime_pb2
 
 
 def parse_vehicle_positions(file_path):

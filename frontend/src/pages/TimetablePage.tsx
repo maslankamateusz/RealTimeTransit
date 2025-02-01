@@ -62,15 +62,15 @@ const TimetablePage: React.FC = () => {
   });
 
   return (
-    <div className="container mx-auto px-6 lg:px-32 flex justify-around">
-      <div className="me-10">
+    <div className="container mx-auto px-6 lg:px-32 flex flex-col md:flex-row justify-around">
+      <div className="md:me-10">
         <header className="mt-10">
           <h1 className="text-4xl font-bold mb-2">Linia {lineNumber}</h1>
           <p className="text-lg">
             Linia obsługiwana przez <span className="font-semibold">MPK S.A. w Krakowie</span>
           </p>
         </header>
-
+  
         <div className="flex flex-col gap-2 my-4">
           {sortedServiceData.map((service, index) => {
             const dayLabel: string = service.days.map((day: string) => dayTranslations[day]).join(', ');
@@ -88,11 +88,11 @@ const TimetablePage: React.FC = () => {
             );
           })}
         </div>
-
+  
         <Button onClick={() => setSelectedDirection((prev) => (prev === 1 ? 0 : 1))}>
           ↺ Przeciwny kierunek
         </Button>
-
+  
         <ul className="list-disc list-inside space-y-1 my-3">
           {stopDetails[selectedDirection][1].map((stop: Stop) => (
             <li 
@@ -105,8 +105,9 @@ const TimetablePage: React.FC = () => {
           ))}
         </ul>
       </div>
-      <div>
-        <div className="border border-gray-300 p-4 w-full mt-12">
+  
+      <div className="mt-8 md:mt-0"> 
+        <div className="border border-gray-300 p-4 w-full mt-0 md:mt-8">
           <div className="flex items-center pb-2 mb-3">
             <span className="text-5xl font-bold mr-4">{lineNumber}</span>
             <span className="text-lg font-semibold">{destinationStop}</span>
@@ -116,7 +117,7 @@ const TimetablePage: React.FC = () => {
           ) : timetableError ? (
             <p>Błąd ładowania rozkładu: {timetableError}</p>
           ) : (
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse ">
               <tbody>
                 {Object.entries(timetableData).map(([hour, minutes]) => (
                   <tr key={hour}>
@@ -134,6 +135,7 @@ const TimetablePage: React.FC = () => {
       </div>
     </div>
   );
+  
 };
 
 export default TimetablePage;
