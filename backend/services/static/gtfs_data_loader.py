@@ -24,28 +24,28 @@ def should_download_files(folder_path):
 
 def download_and_extract_gtfs(url, extract_to):
     if not should_download_files(extract_to):
-        print(f"Pliki GTFS w {extract_to} już istnieją, pomijam pobieranie.")
+        print(f"GTFS files already exsists in: {extract_to}")
         return
 
     os.makedirs(extract_to, exist_ok=True)
     zip_path = os.path.join(extract_to, os.path.basename(url))
 
-    print(f"Pobieranie {url}...")
+    print(f"Downloading {url}...")
     response = requests.get(url, stream=True)
     
     if response.status_code == 200:
         with open(zip_path, 'wb') as file:
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
-        print(f"Pobrano: {zip_path}")
+        print(f"Downloaded: {zip_path}")
 
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(extract_to)
-        print(f"Rozpakowano do: {extract_to}")
+        print(f"Unziped int: {extract_to}")
 
         os.remove(zip_path)
     else:
-        raise Exception(f"Nie udało się pobrać pliku: {url}")
+        raise Exception(f"Downloading failed: {url}")
 
 def load_gtfs_data():
     base_path = os.path.dirname(__file__)

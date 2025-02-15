@@ -18,9 +18,9 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     try:
-        load_gtfs_data()  
+        load_gtfs_data() 
     except Exception as e:
-        print(f"Błąd ładowania GTFS: {e}")
+        print(f"Error loading GTFS data: {e}")
 
     asyncio.create_task(start_realtime_check()) 
 async def check_for_new_realtime_data():
@@ -28,7 +28,7 @@ async def check_for_new_realtime_data():
         try:
             prepare_realtime_data_for_database()  
         except Exception as e:
-            print(f"Błąd w prepare_realtime_data_for_database: {e}")
+            print(f"Error: {e}")
         await asyncio.sleep(60)
 
 async def start_realtime_check():

@@ -195,7 +195,7 @@ def create_csv_with_schedule_numbers(gtfs_data):
         routes_data_t = gtfs_data['routes_t']
         trips_data_t = gtfs_data['trips_t']
         calendar_df_t = gtfs_data['calendar_t']
-
+        
         schedule_number_df_a = create_df_with_schedule_numbers(routes_data_a, trips_data_a, calendar_df_a)
         schedule_number_df_a.to_csv(file_path_a, sep=",", index=False) 
         schedule_number_df_t = create_df_with_schedule_numbers_tram(routes_data_t, trips_data_t, calendar_df_t)
@@ -207,7 +207,6 @@ def create_csv_with_schedule_numbers(gtfs_data):
 
 def create_df_with_schedule_numbers_tram(routes_data, trips_data, calendar_df):
     service_ids = calendar_df['service_id'].tolist()
-    
     final_schedule_list = []
     for service_id in service_ids:
         shedule_list = []
@@ -243,7 +242,6 @@ def create_df_with_schedule_numbers(routes_data, trips_data, calendar_df):
     shedule_list = []
 
     for service_id in service_ids:
-        
         filtered_trips_data = trips_data[trips_data['service_id'] == service_id]
         block_ids = filtered_trips_data['block_id'].drop_duplicates().values
         sorted_route_short_names = sorted(route_short_names, key=int)
@@ -253,12 +251,10 @@ def create_df_with_schedule_numbers(routes_data, trips_data, calendar_df):
             block_ids = filtered_trips_data[filtered_trips_data['route_id'] == route_id]['block_id'].drop_duplicates().values.tolist()
             block_numbers = [block.split('_')[1] for block in block_ids]
             block_numbers.sort(key=int)
-
-            routes_list.append({route_short_name: block_numbers})
-
+            if len(block_numbers) > 0:
+                routes_list.append({route_short_name: block_numbers})
         first_key = next(iter(routes_list[0]))
         first_block_id = int(routes_list[0][first_key][0])
-
         last_bloc = first_block_id - 1
         for route_block in routes_list:
             for route, blocks in route_block.items():
@@ -270,7 +266,7 @@ def create_df_with_schedule_numbers(routes_data, trips_data, calendar_df):
                             shedule_list.append({"block_id" : f"block_{block}", "schedule_number": f"{route}/{str(schedule_num).zfill(2)}", "service_id" : service_id})
                             schedule_num += 1
                             continue
-        
+
     schedule_number_df = pd.DataFrame(shedule_list)
     return schedule_number_df
     
