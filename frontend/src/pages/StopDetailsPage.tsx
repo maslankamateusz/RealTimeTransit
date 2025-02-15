@@ -90,14 +90,20 @@ const StopDetails: React.FC = () => {
                 >
                   <td className="border px-4 py-2">{departure.timeToDeparture}</td>
                   <td className="border px-4 py-2 font-semibold">
-                    <a href={`/lines/${departure.line}`}>{departure.line}</a>
+                    <a href={`/lines/${departure.line}`} className="hover:underline">{departure.line}</a>
                   </td>
-                  <td className="border px-4 py-2">{departure.direction}</td>
+                  <td className="border px-4 py-2">
+                    <a href={`/stop/${departure.direction}`} className="hover:underline">{departure.direction}</a>
+                  </td>
                   <td className="border px-4 py-2">{departure.scheduledDeparture}</td>
-                  <td className="border px-4 py-2">{departure.vehicle}</td>
+                  <td className="border px-4 py-2">
+                    <a href={`/vehicle/${departure.vehicle}`} className="hover:underline">{departure.vehicle}</a>
+                  </td>
                   <td className="border px-4 py-2 text-blue-600 font-medium">{departure.platform}</td>
                   <td className="border px-4 py-2">{departure.delay}</td>
-                  <td className="border px-4 py-2">{departure.scheduleNumber}</td> 
+                  <td className="border px-4 py-2">
+                    <a href={`/lines/${departure.line}`} className="hover:underline">{departure.scheduleNumber}</a>
+                  </td> 
                 </tr>
               ))
             )}

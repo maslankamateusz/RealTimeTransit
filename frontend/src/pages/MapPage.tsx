@@ -207,7 +207,7 @@ const MapPage: React.FC = () => {
                 fillOpacity: 1,
               }}
             >
-              <Popup><a href={`stop/${stop.stop_id}`}>{stop.stop_name}</a></Popup>
+              <Popup><a href={`stop/${stop.stop_name}`}>{stop.stop_name}</a></Popup>
             </CircleMarker>
           ))}
 
@@ -236,7 +236,8 @@ const MapPage: React.FC = () => {
                 Kierunek: 
                 <a
                   className="text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500"
-                  href={`/stops/${vehicle.trip_headsign}`}
+                  href={`/stop/${vehicle.trip_headsign}`}
+                  target='_blank'
                 >
                   <span className='ms-1'>{vehicle.trip_headsign}</span>
                 </a>

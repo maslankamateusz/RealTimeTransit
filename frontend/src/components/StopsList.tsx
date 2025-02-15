@@ -62,8 +62,7 @@ const StopsList: React.FC<StopsListProps> = ({ lineNumber }) => {
           <ul className="list-disc list-inside space-y-1">
             {stops.map((stop: Stop) => (
               <li key={stop.stop_id}>
-                
-                <a href={`/stops/${stop.stop_id}`} className="text-blue-600 hover:underline">{stop.stop_name}</a>
+                <a href={`/stop/${stop.stop_name}`} target='_blank' className="text-blue-600 hover:underline">{stop.stop_name}</a>
               </li>
             ))}
           </ul>
