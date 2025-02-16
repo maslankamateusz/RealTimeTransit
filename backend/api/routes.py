@@ -3,7 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from services.static.gtfs_data_loader import load_gtfs_data
 from services.static.gtfs_processing import get_routes_list_with_labels, get_stops_list_for_route, get_schedule_data, get_schedule_from_block_id, get_timetable_data, create_csv_with_schedule_numbers, get_schedule_number_from_block_id, get_routes_list_from_block_id, get_stops_list, get_stops_list_with_location, get_shape_list_for_trip_id, get_stops_list_for_trip_with_delay, get_stop_details, get_vehicle_details, get_service_data, get_vehicle_history, get_route_history
 import pandas as pd
-from services.realtime.realtime_service import get_vehicle_realtime_raw_data, get_vehicle_with_route_name, get_realtime_stop_details
+from services.realtime.realtime_service import get_vehicle_realtime_raw_data, get_vehicle_with_route_name, get_realtime_stop_details, save_vehicle_to_daily_log
 from sqlalchemy.orm import Session
 from database.crud import import_vehicles_from_json  
 from database.session import SessionLocal  
@@ -18,10 +18,6 @@ class GTFSData:
 
     def get_data(self):
         return self.data
-
-def get_gtfs_data() -> GTFSData:
-    return GTFSData()
-
 
 def get_gtfs_data(request: Request = None):
     gtfs_data = gtfs_data_instance.get_data()
@@ -249,6 +245,14 @@ async def get_vehicle_history_edp(
     route_history = get_route_history(route_name, start_date, end_date )
     return route_history
 
+@router.put("/api/save-vehicle")
+async def save_vehicle_to_db_edp(
+    vehicle_id: str = Query(...),
+    schedule_number: str = Query(...),
+    routes_list: str = Query(...),
+):
+    save_vehicle_to_daily_log(vehicle_id, schedule_number, routes_list)
+    return "Data saved"
 
 def configure_routes(app):
     app.include_router(router)

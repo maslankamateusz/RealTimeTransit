@@ -60,12 +60,16 @@ const StopsList: React.FC<StopsListProps> = ({ lineNumber }) => {
       {
         <>
           <ul className="list-disc list-inside space-y-1">
-            {stops.map((stop: Stop) => (
-              <li key={stop.stop_id}>
-                
-                <a href={`/stops/${stop.stop_id}`} className="text-blue-600 hover:underline">{stop.stop_name}</a>
-              </li>
-            ))}
+            {stops.map((stop: Stop) => {
+              const cleanedStopName = stop.stop_name.replace(/\s\(\d{2}\)$/, "");
+              return (
+                <li key={stop.stop_id}>
+                  <a href={`/stop/${encodeURIComponent(cleanedStopName)}`} target='_blank' className="text-blue-600 hover:underline">
+                    {stop.stop_name}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </>
       }

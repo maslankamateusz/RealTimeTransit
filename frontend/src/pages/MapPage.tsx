@@ -207,7 +207,7 @@ const MapPage: React.FC = () => {
                 fillOpacity: 1,
               }}
             >
-              <Popup><a href={`stop/${stop.stop_id}`}>{stop.stop_name}</a></Popup>
+              <Popup><a href={`stop/${stop.stop_name}`}>{stop.stop_name}</a></Popup>
             </CircleMarker>
           ))}
 
@@ -236,7 +236,8 @@ const MapPage: React.FC = () => {
                 Kierunek: 
                 <a
                   className="text-blue-500 font-bold no-underline hover:text-black visited:text-blue-500 focus:text-blue-500"
-                  href={`/stops/${vehicle.trip_headsign}`}
+                  href={`/stop/${vehicle.trip_headsign}`}
+                  target='_blank'
                 >
                   <span className='ms-1'>{vehicle.trip_headsign}</span>
                 </a>
@@ -301,9 +302,11 @@ const MapPage: React.FC = () => {
                             ? new Date(selectedVehicle.timestamp * 1000)
                             : new Date();
                           const delayInMillis = vehicleTimestampDate.getTime() - stopDate.getTime();
-                          const delayInMinutes = Math.round(delayInMillis / (1000 * 60)); 
+                          const delayInMinutes = Math.round(delayInMillis / (1000 * 60));
 
                           return stopListForTrip.map((stop, index) => {
+                            const cleanedStopName = stop.stopName.replace(/\s\(\d{2}\)$/, ""); 
+
                             return (
                               <tr
                                 key={stop.stopId}
@@ -327,13 +330,28 @@ const MapPage: React.FC = () => {
                                     </span>
                                   )}
                                 </td>
-                                <td className="px-4 py-2 hover:underline"><a href={`/stop/${stop.stopName}`}>{stop.stopName}</a></td>
+                                <td className="px-4 py-2 hover:underline">
+                                  <a
+                                    href={`/stop/${encodeURIComponent(cleanedStopName)}`}
+                                    target="_blank"
+                                    className={`hover:underline ${
+                                      index < currentStopIndex
+                                        ? "text-gray-400"
+                                        : index === currentStopIndex
+                                        ? "text-amber-800 font-medium"
+                                        : "text-blue-900"
+                                    }`}
+                                  >
+                                    {stop.stopName}
+                                  </a>
+                                </td>
                               </tr>
                             );
                           });
                         }
                       })()}
                     </tbody>
+
                   </table>
                 </div>
               </div>

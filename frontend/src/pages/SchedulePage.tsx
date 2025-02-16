@@ -43,7 +43,6 @@ const SchedulePage: React.FC = () => {
               <th className="border px-4 py-3">Odjazd</th>
               <th className="border px-4 py-3">Przyjazd</th>
               <th className="border px-4 py-3">Czas jazdy</th>
-              <th className="border px-4 py-3">Przystanek początkowy</th>
               <th className="border px-4 py-3">Linia</th>
               <th className="border px-4 py-3">Kierunek</th>
               <th className="border px-4 py-3">Kurs</th>
@@ -67,14 +66,17 @@ const SchedulePage: React.FC = () => {
                 return (
                   <>
                     <tr key={trip.trip_id} className="even:bg-gray-100 hover:bg-gray-200 transition">
-                      <td className="border px-4 py-2 text-center">{index + 1}</td>
+                      <td className="border px-4 py-2 text-center font-semibold">{index + 1}</td>
                       <td className="border px-4 py-2 text-center">{index > 0 ? Math.floor(breakTime / 60000) + "’" : "-"}</td>
                       <td className="border px-4 py-2 text-center">{formatTime(trip.first_stop_time)}</td>
                       <td className="border px-4 py-2 text-center">{formatTime(trip.last_stop_time)}</td>
                       <td className="border px-4 py-2 text-center">{Math.floor(tripDuration / 60000)}’</td>
-                      <td className="border px-4 py-2 text-center">{trip.trip_headsign}</td>
-                      <td className="border px-4 py-2 text-center">{trip.route_short_name}</td>
-                      <td className="border px-4 py-2 text-center">{trip.trip_headsign}</td>
+                      <td className="border px-4 py-2 text-center">
+                        <a href={`/lines/${trip.route_short_name}`} target="_blank" className="hover:underline">{trip.route_short_name}</a>
+                      </td>
+                      <td className="border px-4 py-2 text-center">
+                        <a href={`/stop/${trip.trip_headsign}`} target="_blank" className="hover:underline">{trip.trip_headsign}</a>
+                      </td>
                       <td className="border px-4 py-2 text-center">
                         <button
                           onClick={() => handleToggleTrip(trip.trip_id, trip.route_short_name)}
@@ -107,7 +109,9 @@ const SchedulePage: React.FC = () => {
                                   {stopListForTrip.map((stop, i) => (
                                     <tr key={i} className={`border-b ${i % 2 === 0 ? "bg-gray-50" : "bg-white"}`}>
                                       <td className="px-4 py-2 text-gray-900">{formatTime(stop.time)}</td>
-                                      <td className="px-4 py-2 text-gray-800">{stop.stopName}</td>
+                                      <td className="px-4 py-2 text-gray-800">
+                                        <a href={`/stop/${stop.stopName}`} target="_blank" className="hover:underline">{stop.stopName}</a>
+                                      </td>
                                     </tr>
                                   ))}
                                 </tbody>

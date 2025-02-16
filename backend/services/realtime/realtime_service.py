@@ -2,11 +2,12 @@ from services.realtime.realtime_fetcher import download_gtfs_realtime_file
 from services.realtime.realtime_parser import parse_vehicle_positions
 from typing import List, Dict
 from database.session import SessionLocal
-from database.crud import update_vehicles_status
+from database.crud import update_vehicles_status, log_new_vehicle_to_daily_logs
 from fastapi import Depends
 from fastapi import Request
 from services.static.gtfs_data_loader import gtfs_data_instance
 from services.static.gtfs_processing import get_routes_list_from_block_id, get_schedule_number_from_block_id, get_stop_details, get_schedule_number_from_trip_id, get_stop_delay
+from datetime import datetime
 
 def get_gtfs_data(request: Request = None):
     gtfs_data = gtfs_data_instance.get_data()
@@ -101,8 +102,6 @@ def get_vehicle_with_route_name(gtfs_data):
     return vehicle_list
  
 
-
-
 def get_routes_list(gtfs_data, trip_id, vehicle_type):
     parts = trip_id.split("_")
     block_id = f"block_{parts[1]}".strip()
@@ -172,3 +171,16 @@ def get_vehicle_realtime_status(gtfs_data, vehicle_id):
             delay = get_stop_delay(gtfs_data, vehicle_type, trip_id, stop_id, timestamp)
             return trip_id, stop_id, vehicle_type, timestamp, delay, latitude, longitude, schedule_number, block_id
     return None
+
+def save_vehicle_to_daily_log(vehicle_id, schedule_number, routes):
+    timestamp = int(datetime.now().timestamp())
+    routes_array = routes.split() 
+
+    vehicle = {
+        "vehicle_id": vehicle_id,
+        "schedule_number": schedule_number,
+        "timestamp": timestamp,
+        "routes_list": routes_array,
+    }
+    with SessionLocal() as session:
+        log_new_vehicle_to_daily_logs(session, vehicle)

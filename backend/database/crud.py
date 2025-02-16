@@ -116,12 +116,9 @@ def handle_line_change(session,old_status, new_status):
             
         session.commit()
 
-
-
 def log_new_vehicle_to_daily_logs(session, vehicle):
     current_time = datetime.fromtimestamp(vehicle['timestamp']).replace(microsecond=0)
     current_date = current_time.date()
-
     routes_list = [int(route) for route in vehicle["routes_list"]]
     daily_log = DailyLogs(
         vehicle_id=vehicle["vehicle_id"],
@@ -129,7 +126,6 @@ def log_new_vehicle_to_daily_logs(session, vehicle):
         route_short_names=[routes_list],   
         date=current_date, 
     )
-    
     session.add(daily_log)
     session.commit()
     
