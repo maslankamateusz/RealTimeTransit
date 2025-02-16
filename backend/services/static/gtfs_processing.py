@@ -4,6 +4,7 @@ from collections import Counter, defaultdict
 from operator import itemgetter
 from database.crud import get_vehicle_ids_with_timestamps_by_schedule_number, get_vehicle_status_by_id, get_vehicle_info_by_id, get_vehicle_schedule_and_routes, get_all_schedules_and_vehicles
 from database.session import SessionLocal
+from datetime import datetime, timedelta
 
 def get_bus_routes_list(gtfs_data):
     if 'route_id' in gtfs_data['routes_a'].index.names:
@@ -111,8 +112,8 @@ def get_stops_list_for_route(gtfs_data, route_number):
 
     trips = gtfs_data[trips_key]
     stop_times = gtfs_data[stop_times_key]
-    stops = gtfs_data[stops_key]
-
+    stops_raw = gtfs_data[stops_key].copy()
+    stops = add_stop_number_to_stop_name(stops_raw, 'bus' if len(route_number) == 3 else 'tram')
     trips_for_route = trips[trips['route_id'] == route_id]
     filtered_trips = trips[trips['route_id'] == route_id][['direction_id', 'trip_headsign']].drop_duplicates()
 
@@ -156,7 +157,6 @@ def get_stops_list_for_route(gtfs_data, route_number):
                     longest_stops_dict = stops_dict
 
         grouped_directions_dict[direction_id] = [trip_headsigns, longest_stops_dict]
-
     return grouped_directions_dict
 
 
@@ -295,68 +295,47 @@ def adjust_end_time(end_time):
     return f"{hours:02}:{minutes:02}"
 
 def get_schedule_data(gtfs_data, route_name):
-    days_of_week = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-
-    if len(route_name) < 3:
-        vehicle_type = 'tram'
-        routes_data = gtfs_data['routes_t']
-        trips_data = gtfs_data['trips_t']
-        stop_times_data = gtfs_data['stop_times_t']
-        calendar_data = gtfs_data['calendar_t']
-    else:
-        vehicle_type = 'bus'
-        routes_data = gtfs_data['routes_a']
-        trips_data = gtfs_data['trips_a']
-        stop_times_data = gtfs_data['stop_times_a']
-        calendar_data = gtfs_data['calendar_a']
-
+    vehicle_type = 'tram' if len(route_name) < 3 else 'bus'
+    routes_data = gtfs_data[f'routes_{"t" if vehicle_type == "tram" else "a"}']
+    trips_data = gtfs_data[f'trips_{"t" if vehicle_type == "tram" else "a"}']
+    stop_times_data = gtfs_data[f'stop_times_{"t" if vehicle_type == "tram" else "a"}']
+    calendar_data = gtfs_data[f'calendar_{"t" if vehicle_type == "tram" else "a"}']
     if 'route_id' in routes_data.index.names:
         routes_data.reset_index(inplace=True)
-    route_id = routes_data[routes_data['route_short_name'] == route_name]['route_id'].values[0]
- 
-    filtered_data = trips_data.loc[(trips_data['route_id'] == route_id)]
-    if 'trip_id' in filtered_data.index.names:
-        filtered_data.reset_index(inplace=True)
-    
-    if 'trip_id' in stop_times_data.index.names:
-        stop_times_data.reset_index(inplace=True)
-    block_ids = filtered_data['block_id'].drop_duplicates().values.tolist()
-    schedule_number_list = []
-    
+    route_id = routes_data.loc[routes_data['route_short_name'] == route_name, 'route_id'].iloc[0]
+    filtered_data = trips_data[trips_data['route_id'] == route_id]
+
+    block_ids = filtered_data['block_id'].drop_duplicates().tolist()
     sorted_block_ids = sorted(block_ids, key=lambda x: int(x.split('_')[1]))
+
+    schedule_number_list = []
+    today = datetime.today().strftime('%A').lower()
+
     for block_id in sorted_block_ids:
         block_filtered_data = trips_data[trips_data['block_id'] == block_id]
-        route_short_names_list = []
-        route_ids = block_filtered_data['route_id'].drop_duplicates().values.tolist()
-        for route_id in route_ids:
-            route_short_names_list.append(get_route_short_name_from_route_id(gtfs_data, route_id, vehicle_type))
 
-        service_id = block_filtered_data['service_id'].values[0]
+        route_short_names_list = [
+            get_route_short_name_from_route_id(gtfs_data, route_id, vehicle_type)
+            for route_id in block_filtered_data['route_id'].drop_duplicates()
+        ]
+
+        service_id = block_filtered_data['service_id'].iloc[0]
         schedule_number = get_schedule_number_from_block_id(gtfs_data, block_id, service_id, vehicle_type)
 
+        first_trip_id = block_filtered_data.index[0]
+        last_trip_id = block_filtered_data.index[-1]
 
-        first_trip_id = block_filtered_data.iloc[0].name
-        filtred_start_time_data = stop_times_data[stop_times_data['trip_id'] == first_trip_id]
-        start_time = filtred_start_time_data.departure_time.values[0]
-        last_trip_id = block_filtered_data.iloc[-1].name
-        filtred_end_time_data = stop_times_data[stop_times_data['trip_id'] == last_trip_id]
-        end_time = filtred_end_time_data.departure_time.values[-1]
+        start_time = stop_times_data.loc[first_trip_id, 'departure_time'].iloc[0]
+        end_time = stop_times_data.loc[last_trip_id, 'departure_time'].iloc[-1]
+
         adjusted_end_time = adjust_end_time(end_time)
-        service_id = block_filtered_data["service_id"].values[0]
-        service_day = calendar_data[calendar_data['service_id'] == service_id].copy()
-        days_with_service = service_day[days_of_week].loc[:, service_day[days_of_week].iloc[0] == 1].columns.tolist()
-        
-        today = datetime.today()
-        day_of_week = today.strftime('%A').lower()
 
-        if day_of_week in days_with_service:
-            vehicle_list = check_for_realtime_data(schedule_number)
-            
-        else:
-            vehicle_list = None
-        
+        service_day = calendar_data[calendar_data['service_id'] == service_id]
+        days_with_service = service_day.loc[:, service_day.iloc[0] == 1].columns.tolist()
 
-        schedule_dict = {
+        vehicle_list = check_for_realtime_data(schedule_number) if today in days_with_service else None
+
+        schedule_number_list.append({
             'block_id': block_id,
             'schedule_number': schedule_number,
             'service_id': service_id,
@@ -365,11 +344,9 @@ def get_schedule_data(gtfs_data, route_name):
             'service_days': days_with_service,
             'route_short_names': route_short_names_list,
             'vehicles': vehicle_list
-        }
-        schedule_number_list.append(schedule_dict)
-    
-    return schedule_number_list
+        })
 
+    return schedule_number_list
 
 def get_trips_data_from_vehicle_type(gtfs_data, vehicle_type):
     if vehicle_type == 'bus':
@@ -585,9 +562,13 @@ def get_shape_list_for_trip_id(gtfs_data, trip_id, vehicle_type):
 def get_stops_list_for_trip_with_delay(gtfs_data, vehicle_type, trip_id):
     if vehicle_type == "bus":
         stops = gtfs_data['stops_a']
+        stops_raw = gtfs_data['stops_a'].copy()
+        stops = add_stop_number_to_stop_name(stops_raw, 'bus')
         stop_times = gtfs_data['stop_times_a']
     else:
         stops = gtfs_data['stops_t']
+        stops_raw = gtfs_data['stops_t'].copy()
+        stops = add_stop_number_to_stop_name(stops_raw, 'tram')
         stop_times = gtfs_data['stop_times_t']
 
     if 'trip_id' not in stop_times.index.names:
@@ -600,7 +581,6 @@ def get_stops_list_for_trip_with_delay(gtfs_data, vehicle_type, trip_id):
 
     return stop_times_filtred[['stop_id', 'stop_name', 'departure_time']].values.tolist()
 
-from datetime import datetime, timedelta
 
 def get_today_service_id(gtfs_data):
     calendar_data = gtfs_data['calendar_a']
@@ -773,7 +753,6 @@ def get_trips_data_for_block(gtfs_data, block_id, service_id, vehicle_type):
     return response_data
 
 
-from datetime import datetime
 def get_stop_delay(gtfs_data, vehicle_type, trip_id, stop_id, timestamp):
     stop_list = get_stops_list_for_trip_with_delay(gtfs_data, vehicle_type, trip_id)
 
