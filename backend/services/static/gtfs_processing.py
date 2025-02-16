@@ -149,6 +149,9 @@ def get_stops_list_for_route(gtfs_data, route_number):
                 continue 
             trip_ids = filtered_trips['shape_id'].drop_duplicates().index
             for trip_id in trip_ids:
+                trip_number = trip_id.split("_")[3]
+                if trip_number == '1':
+                    continue
                 stop_times_with_correct_trip_id = stop_times[stop_times['trip_id'] == trip_id]
                 stops_for_all_trips = stop_times_with_correct_trip_id.merge(stops, on='stop_id', how='inner')
                 stops_dict = stops_for_all_trips[['stop_id', 'stop_name']].drop_duplicates().to_dict(orient='records')
@@ -321,12 +324,14 @@ def get_schedule_data(gtfs_data, route_name):
 
         service_id = block_filtered_data['service_id'].iloc[0]
         schedule_number = get_schedule_number_from_block_id(gtfs_data, block_id, service_id, vehicle_type)
-
+        
         first_trip_id = block_filtered_data.index[0]
         last_trip_id = block_filtered_data.index[-1]
+        start_value = stop_times_data.loc[first_trip_id, 'departure_time']
+        end_value = stop_times_data.loc[last_trip_id, 'departure_time']
 
-        start_time = stop_times_data.loc[first_trip_id, 'departure_time'].iloc[0]
-        end_time = stop_times_data.loc[last_trip_id, 'departure_time'].iloc[-1]
+        start_time = start_value if isinstance(start_value, str) else start_value.iloc[0]
+        end_time = end_value if isinstance(end_value, str) else end_value.iloc[0]
 
         adjusted_end_time = adjust_end_time(end_time)
 
