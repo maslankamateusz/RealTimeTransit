@@ -331,7 +331,17 @@ const MapPage: React.FC = () => {
                                   )}
                                 </td>
                                 <td className="px-4 py-2 hover:underline">
-                                  <a href={`/stop/${encodeURIComponent(cleanedStopName)}`} target='_blank' className="text-blue-900 hover:underline">
+                                  <a
+                                    href={`/stop/${encodeURIComponent(cleanedStopName)}`}
+                                    target="_blank"
+                                    className={`hover:underline ${
+                                      index < currentStopIndex
+                                        ? "text-gray-400"
+                                        : index === currentStopIndex
+                                        ? "text-amber-800 font-medium"
+                                        : "text-blue-900"
+                                    }`}
+                                  >
                                     {stop.stopName}
                                   </a>
                                 </td>

@@ -74,14 +74,17 @@ const BlockTable: React.FC<{ lineDetails: any[] }> = ({ lineDetails }) => {
                         const isSubstituteLine = String(lineNumber).startsWith('7') && String(lineNumber).length > 1;
 
                         return (
-                        <div
-                            className={`me-2 flex justify-center items-center text-center text-md font-semibold border transition-all
-                            ${isNightLine ? 'bg-black text-white border-black' : isSubstituteLine ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-black border-gray-900 hover:bg-gray-100'}`}
-                            style={{ width: '34px', height: '34px' }}
-                            key={`${block.block_id}-${block.schedule_number}-${lines.indexOf(line)}`}
-                        >
-                            {lineNumber}
-                        </div>
+                            <a href={`/lines/${lineNumber}`}>
+                                <div
+                                    className={`me-2 flex justify-center items-center text-center text-md font-semibold border transition-all
+                                    ${isNightLine ? 'bg-black text-white border-black' : isSubstituteLine ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-black border-gray-900 hover:bg-gray-100'}`}
+                                    style={{ width: '34px', height: '34px' }}
+                                    key={`${block.block_id}-${block.schedule_number}-${lines.indexOf(line)}`}
+                                >
+                                    {lineNumber}
+                                </div>
+                            </a>
+
                         );
                     })}
                     </div>

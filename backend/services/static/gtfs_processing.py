@@ -122,7 +122,7 @@ def get_stops_list_for_route(gtfs_data, route_number):
         filtered_trips = trips_for_route[trips_for_route['direction_id'] == direction_id]
 
     if len(route_number) <= 2:
-        test_number = len(filtered_trips['block_id'].drop_duplicates())*2
+        test_number = len(filtered_trips['block_id'].drop_duplicates()) + 1
     else:
         test_number = 1
 
